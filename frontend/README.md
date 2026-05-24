@@ -101,9 +101,18 @@ User selects PDF
   → upload mutation calls documentsApi.upload
   → XHR POST /documents/upload (multipart/form-data, field: file)
   → progress updates via xhr.upload.onprogress (or mock timer)
+  → backend saves file, extracts text, sets status READY or FAILED
   → on success, React Query invalidates ['documents']
-  → list refetches automatically
+  → list refetches — badge shows READY, FAILED, or UPLOADED
 ```
+
+### Document statuses (from backend)
+
+| Status | UI badge | Meaning |
+|--------|----------|---------|
+| `READY` | shown in list | PDF uploaded and text extracted |
+| `FAILED` | shown in list | PDF uploaded but extraction failed |
+| `UPLOADED` | shown in list | Saved, extraction pending or incomplete |
 
 ### Client-side validation
 
@@ -113,7 +122,7 @@ Matches backend rules:
 - Max size 10MB
 - Errors shown inline before and after upload
 
-No text extraction, chunking, or AI replies yet.
+Extraction runs on the backend during upload. The frontend does not receive extracted text — only the document status reflects the result.
 
 ## Chat
 
@@ -194,5 +203,5 @@ Ensure the backend is running with CORS enabled for `http://localhost:3001` (`FR
 
 1. Add AI assistant replies via backend
 2. Link conversations to uploaded documents for RAG
-3. Add document detail view and delete
+3. Add document detail view with extracted text preview
 4. Replace localStorage auth with httpOnly cookies if needed

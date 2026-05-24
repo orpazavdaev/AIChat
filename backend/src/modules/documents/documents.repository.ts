@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { DocumentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/database/prisma.service';
 
 @Injectable()
@@ -8,6 +8,13 @@ export class DocumentsRepository {
 
   create(data: Prisma.DocumentCreateInput) {
     return this.prisma.document.create({ data });
+  }
+
+  updateExtraction(id: string, content: string | null, status: DocumentStatus) {
+    return this.prisma.document.update({
+      where: { id },
+      data: { content, status },
+    });
   }
 
   findAllByUser(userId: string) {

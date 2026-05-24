@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, readFile, writeFile } from 'fs/promises';
 import { extname, join } from 'path';
 
 @Injectable()
@@ -53,5 +53,13 @@ export class FileStorageService {
       filename: file.originalname,
       path: relativePath.replace(/\\/g, '/'),
     };
+  }
+
+  getAbsolutePath(relativePath: string): string {
+    return join(process.cwd(), this.uploadDir, relativePath);
+  }
+
+  read(relativePath: string): Promise<Buffer> {
+    return readFile(this.getAbsolutePath(relativePath));
   }
 }

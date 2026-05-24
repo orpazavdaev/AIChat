@@ -25,6 +25,7 @@ backend/
 │       │   └── types/
 │       ├── users/
 │       ├── documents/
+│       │   ├── extraction/
 │       │   └── storage/
 │       └── chat/
 │       │   └── dto/
@@ -215,22 +216,60 @@ file: <pdf file>
   "id": "<uuid>",
   "filename": "report.pdf",
   "path": "<userId>/<uuid>.pdf",
-  "status": "UPLOADED",
+  "status": "READY",
   "createdAt": "2026-05-24T12:00:00.000Z",
   "updatedAt": "2026-05-24T12:00:00.000Z"
 }
 ```
 
+`status` is `READY` when text extraction succeeds, `FAILED` when extraction fails, or briefly `UPLOADED` while processing. Extracted text is stored in `Document.content` but not returned in API responses.
+
+### Upload and extraction flow
+
+```
+Client                         DocumentsService              FileStorage / PdfParser
+  |  POST /documents/upload          |                              |
+  |------------------------------->|  validate + save PDF to disk |
+  |                                |----------------------------->|
+  |                                |  create Document (UPLOADED)  |
+  |                                |----------------------------->|
+  |                                |  extractFromBuffer(pdf)      |
+  |                                |----------------------------->|
+  |                                |  update content + status       |
+  |                                |   READY (success)            |
+  |                                |   FAILED (parse error)       |
+  |<-------------------------------|                              |
+```
+
+Steps:
+
+1. Multer buffers the PDF in memory
+2. `FileStorageService` validates type/size and writes to `uploads/{userId}/{uuid}.pdf`
+3. `DocumentsRepository` creates a row with `status: UPLOADED`
+4. `PdfParserService` extracts raw text via `pdf-parse` from the upload buffer
+5. `DocumentsRepository.updateExtraction` saves text to `content` and sets `status: READY` or `FAILED`
+
+Re-extraction from disk is supported via `PdfParserService.extractFromPath()` for future retry or batch jobs.
+
+### Document statuses
+
+| Status | Meaning |
+|--------|---------|
+| `UPLOADED` | File saved, extraction in progress or not yet updated |
+| `READY` | Text extracted and stored in `content` |
+| `FAILED` | PDF saved but text extraction failed |
+
 ### File storage
 
-PDFs are stored on the local filesystem under `UPLOAD_DIR` (default `uploads/`). Each file is saved as `uploads/{userId}/{uuid}.pdf`. The database stores the original filename, relative path, owner, and status.
+PDFs are stored on the local filesystem under `UPLOAD_DIR` (default `uploads/`). Each file is saved as `uploads/{userId}/{uuid}.pdf`. The database stores the original filename, relative path, extracted text, owner, and status.
 
 | Layer | Responsibility |
 |-------|----------------|
 | `DocumentsController` | Accepts multipart upload, enforces auth |
-| `DocumentsService` | Orchestrates storage + database write |
-| `DocumentsRepository` | Persists and queries document metadata |
-| `FileStorageService` | Validates PDF type/size, writes file to disk |
+| `DocumentsService` | Orchestrates storage, extraction, and DB updates |
+| `DocumentsRepository` | Persists and queries document metadata + content |
+| `FileStorageService` | Validates PDF type/size, reads/writes files on disk |
+| `PdfParserService` | Extracts raw text from PDF buffers or file paths |
 
 ### Validation and errors
 
@@ -239,8 +278,9 @@ PDFs are stored on the local filesystem under `UPLOAD_DIR` (default `uploads/`).
 - Missing file → `400 Bad Request`
 - Invalid type → `400 Bad Request`
 - File too large → `413 Payload Too Large`
+- Extraction failure → document saved with `status: FAILED`, `content: null`
 
-Text extraction, chunking, and AI processing are not implemented yet. The `UPLOADED` status is a placeholder for future processing stages.
+Chunking, embeddings, and AI processing are not implemented yet. Extracted text in `content` is ready for those pipeline stages.
 
 ### Design decisions
 
@@ -259,6 +299,14 @@ The database stores filename, path, owner, and status — not file bytes. The pa
 **Per-user isolation**
 
 Files are stored in user-scoped directories. List and upload endpoints always filter by the authenticated user's ID from the JWT.
+
+**Synchronous extraction on upload**
+
+Text is extracted in the same request as the upload using the in-memory buffer. This avoids a second disk read and keeps the flow simple. For large files or slow parsing, extraction can be moved to a background job without changing the schema.
+
+**Raw text only**
+
+`PdfParserService` stores plain text in `content`. No chunking, cleaning, or embedding is applied yet.
 
 ## Chat
 
@@ -360,7 +408,7 @@ The server starts on `http://localhost:3000` by default.
 
 1. Add refresh tokens with opaque random strings stored in the database
 2. Implement user profile endpoints in the users module
-3. Add text extraction and processing pipeline for uploaded PDFs
+3. Add text chunking and embedding pipeline for uploaded PDFs
 4. Add AI assistant replies and RAG over document context
 5. Add role-based access control if needed
 

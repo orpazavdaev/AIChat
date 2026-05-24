@@ -1,4 +1,4 @@
-export type DocumentStatus = 'UPLOADED';
+export type DocumentStatus = 'UPLOADED' | 'READY' | 'FAILED';
 
 export interface Document {
   id: string;
