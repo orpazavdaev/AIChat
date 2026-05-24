@@ -29,4 +29,24 @@ export class DocumentsRepository {
       where: { id, userId },
     });
   }
+
+  replaceChunks(
+    documentId: string,
+    chunks: { index: number; content: string }[],
+  ) {
+    return this.prisma.$transaction([
+      this.prisma.documentChunk.deleteMany({ where: { documentId } }),
+      ...(chunks.length > 0
+        ? [
+            this.prisma.documentChunk.createMany({
+              data: chunks.map((chunk) => ({
+                documentId,
+                index: chunk.index,
+                content: chunk.content,
+              })),
+            }),
+          ]
+        : []),
+    ]);
+  }
 }

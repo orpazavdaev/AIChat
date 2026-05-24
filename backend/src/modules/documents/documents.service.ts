@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DocumentStatus } from '@prisma/client';
+import { chunkText } from '../../common/utils';
 import { DocumentsRepository } from './documents.repository';
 import { PdfParserService } from './extraction/pdf-parser.service';
 import { FileStorageService } from './storage/file-storage.service';
@@ -33,12 +34,18 @@ export class DocumentsService {
   private async extractAndStore(documentId: string, source: Buffer) {
     try {
       const content = await this.pdfParserService.extractFromBuffer(source);
-      return this.documentsRepository.updateExtraction(
+      const document = await this.documentsRepository.updateExtraction(
         documentId,
         content,
         DocumentStatus.READY,
       );
+      await this.documentsRepository.replaceChunks(
+        documentId,
+        chunkText(content),
+      );
+      return document;
     } catch {
+      await this.documentsRepository.replaceChunks(documentId, []);
       return this.documentsRepository.updateExtraction(
         documentId,
         null,
