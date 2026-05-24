@@ -8,4 +8,8 @@ export default () => ({
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN ?? '15m',
   },
+  storage: {
+    uploadDir: process.env.UPLOAD_DIR ?? 'uploads',
+    maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB ?? '10', 10),
+  },
 });

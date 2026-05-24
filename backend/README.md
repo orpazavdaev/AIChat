@@ -25,6 +25,7 @@ backend/
 │       │   └── types/
 │       ├── users/
 │       ├── documents/
+│       │   └── storage/
 │       └── chat/
 ├── test/
 ├── .env.example
@@ -185,6 +186,61 @@ findAll(@CurrentUser() user: AuthenticatedUser) {
 
 Import `AuthModule` in any module that needs the guard.
 
+## Documents
+
+### Endpoints
+
+| Method | Path                | Auth     | Description        |
+|--------|---------------------|----------|--------------------|
+| POST   | `/documents/upload` | Required | Upload a PDF file  |
+| GET    | `/documents`        | Required | List user documents |
+
+### Upload request
+
+Send `multipart/form-data` with a single field named `file`:
+
+```
+POST /documents/upload
+Authorization: Bearer <accessToken>
+Content-Type: multipart/form-data
+
+file: <pdf file>
+```
+
+### Upload response
+
+```json
+{
+  "id": "<uuid>",
+  "filename": "report.pdf",
+  "path": "<userId>/<uuid>.pdf",
+  "status": "UPLOADED",
+  "createdAt": "2026-05-24T12:00:00.000Z",
+  "updatedAt": "2026-05-24T12:00:00.000Z"
+}
+```
+
+### File storage
+
+PDFs are stored on the local filesystem under `UPLOAD_DIR` (default `uploads/`). Each file is saved as `uploads/{userId}/{uuid}.pdf`. The database stores the original filename, relative path, owner, and status.
+
+| Layer | Responsibility |
+|-------|----------------|
+| `DocumentsController` | Accepts multipart upload, enforces auth |
+| `DocumentsService` | Orchestrates storage + database write |
+| `DocumentsRepository` | Persists and queries document metadata |
+| `FileStorageService` | Validates PDF type/size, writes file to disk |
+
+### Validation and errors
+
+- Only `application/pdf` files with a `.pdf` extension are accepted
+- Max file size defaults to 10MB (`MAX_FILE_SIZE_MB`)
+- Missing file → `400 Bad Request`
+- Invalid type → `400 Bad Request`
+- File too large → `413 Payload Too Large`
+
+Text extraction, chunking, and AI processing are not implemented yet. The `UPLOADED` status is a placeholder for future processing stages.
+
 ## Getting Started
 
 ```bash
@@ -220,11 +276,13 @@ The server starts on `http://localhost:3000` by default.
 | `DATABASE_URL`   | PostgreSQL connection string | —           |
 | `JWT_SECRET`     | Secret for signing JWTs      | —           |
 | `JWT_EXPIRES_IN` | Access token lifetime        | 15m         |
+| `UPLOAD_DIR`     | Local directory for PDF files | uploads    |
+| `MAX_FILE_SIZE_MB` | Max upload size in MB      | 10          |
 
 ## Next Steps
 
 1. Add refresh tokens with opaque random strings stored in the database
 2. Implement user profile endpoints in the users module
-3. Protect documents and chat routes with `JwtAuthGuard`
+3. Add text extraction and processing pipeline for uploaded PDFs
 4. Add role-based access control if needed
 
