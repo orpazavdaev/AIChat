@@ -11,17 +11,20 @@ frontend/
 │   │   ├── layout.tsx              # Root layout + QueryProvider
 │   │   ├── (auth)/                 # Login / register
 │   │   └── (app)/                  # Authenticated routes
-│   │       ├── dashboard/
-│   │       └── documents/
+│   │       ├── documents/
+│   │       └── chat/
+│   │           └── [conversationId]/
 │   ├── components/
 │   │   ├── auth/
 │   │   ├── brand/
+│   │   ├── chat/
 │   │   ├── documents/
 │   │   ├── layout/
 │   │   ├── providers/
 │   │   └── ui/                     # shadcn components
 │   ├── hooks/
 │   │   ├── use-auth.ts
+│   │   ├── use-chat.ts
 │   │   └── use-documents.ts
 │   ├── lib/
 │   │   ├── api/
@@ -38,7 +41,7 @@ frontend/
 | Group | Routes | Layout |
 |-------|--------|--------|
 | `(auth)` | `/login`, `/register` | Split-panel auth shell, no sidebar |
-| `(app)` | `/dashboard`, `/documents` | Sidebar + main content, `AuthGuard` |
+| `(app)` | `/dashboard`, `/documents`, `/chat`, `/chat/[id]` | Sidebar + main content, `AuthGuard` |
 
 Unauthenticated users hitting `(app)` routes are redirected to `/login`.
 
@@ -49,6 +52,7 @@ Unauthenticated users hitting `(app)` routes are redirected to `/login`.
 | `lib/api/client.ts` | JSON fetch wrapper with Bearer token injection |
 | `lib/api/auth.ts` | Register, login, me |
 | `lib/api/documents.ts` | List documents, upload with progress |
+| `lib/api/chat.ts` | Conversations and messages CRUD |
 
 JSON endpoints use `apiClient`. File uploads use `XMLHttpRequest` in `documentsApi.upload` so upload progress can be tracked (with a mock fallback when the browser cannot compute byte progress).
 
@@ -67,6 +71,7 @@ After login or register, the token is stored and the user is redirected to `/das
 
 - `useAuth` — auth state and actions
 - `useDocuments` — document list query + upload mutation (invalidates list on success)
+- `useConversations` / `useConversationMessages` — chat list, messages, send mutation
 
 ### UI stack
 
@@ -108,7 +113,54 @@ Matches backend rules:
 - Max size 10MB
 - Errors shown inline before and after upload
 
-No text extraction, chunking, or chat UI yet.
+No text extraction, chunking, or AI replies yet.
+
+## Chat
+
+### Pages
+
+| Route | Description |
+|-------|-------------|
+| `/chat` | Conversation list + empty state |
+| `/chat/[conversationId]` | Active conversation with messages |
+
+### Components
+
+| Component | Role |
+|-----------|------|
+| `ConversationList` | Sidebar of conversations with "New" button |
+| `MessageList` | Scrollable message bubbles |
+| `MessageInput` | Textarea + send (Enter to submit) |
+| `ChatPageContent` | Two-column chat layout |
+
+### Message flow
+
+```
+User opens /chat/:id
+  → useConversationMessages fetches GET /chat/conversations/:id/messages
+  → user types message
+  → sendMessage mutation POST /chat/conversations/:id/messages
+  → React Query invalidates messages + conversations list
+  → UI updates with persisted message
+```
+
+### Design decisions and trade-offs
+
+**Optimistic UI skipped for now**
+
+Messages appear after the server confirms persistence. This keeps the first version simple and avoids rollback logic. Optimistic updates can be added when latency matters.
+
+**Two-column layout**
+
+Conversation list stays visible while chatting, similar to common chat apps. On smaller screens both columns still render; responsive collapse can be added later.
+
+**No AI replies yet**
+
+Only user messages are sent. The UI styles `USER` vs other roles so assistant bubbles can be added without layout changes.
+
+**Deep links via dynamic route**
+
+Each conversation has its own URL (`/chat/[conversationId]`) so refresh and sharing preserve context.
 
 ## Getting Started
 
@@ -140,7 +192,7 @@ Ensure the backend is running with CORS enabled for `http://localhost:3001` (`FR
 
 ## Next Steps
 
-1. Wire chat UI to conversations API
-2. Add document detail view and delete
-3. Show processing status when backend adds extraction pipeline
+1. Add AI assistant replies via backend
+2. Link conversations to uploaded documents for RAG
+3. Add document detail view and delete
 4. Replace localStorage auth with httpOnly cookies if needed

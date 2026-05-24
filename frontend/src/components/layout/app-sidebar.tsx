@@ -2,7 +2,6 @@
 
 import { Logo } from '@/components/brand/logo';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
@@ -19,7 +18,7 @@ import { usePathname } from 'next/navigation';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/documents', label: 'Documents', icon: FileText },
-  { href: '#', label: 'Chat', icon: MessageSquare, soon: true },
+  { href: '/chat', label: 'Chat', icon: MessageSquare },
 ];
 
 function getInitials(email?: string) {
@@ -40,24 +39,8 @@ export function AppSidebar() {
       <nav className="flex flex-1 flex-col gap-1 p-3">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = !item.soon && pathname === item.href;
-
-          if (item.soon) {
-            return (
-              <div
-                key={item.label}
-                className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm text-muted-foreground/70"
-              >
-                <span className="flex items-center gap-3">
-                  <Icon className="size-4" />
-                  {item.label}
-                </span>
-                <Badge variant="secondary" className="text-[10px]">
-                  Soon
-                </Badge>
-              </div>
-            );
-          }
+          const isActive =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link

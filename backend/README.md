@@ -27,6 +27,7 @@ backend/
 │       ├── documents/
 │       │   └── storage/
 │       └── chat/
+│       │   └── dto/
 ├── test/
 ├── .env.example
 └── package.json
@@ -259,6 +260,63 @@ The database stores filename, path, owner, and status — not file bytes. The pa
 
 Files are stored in user-scoped directories. List and upload endpoints always filter by the authenticated user's ID from the JWT.
 
+## Chat
+
+### Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/chat/conversations` | Required | Create a conversation |
+| GET | `/chat/conversations` | Required | List user conversations |
+| GET | `/chat/conversations/:id/messages` | Required | Fetch messages |
+| POST | `/chat/conversations/:id/messages` | Required | Add a user message |
+
+### Create conversation
+
+```json
+POST /chat/conversations
+{ "title": "Optional title", "documentId": "optional-uuid" }
+```
+
+### Add message
+
+```json
+POST /chat/conversations/:id/messages
+{ "content": "Hello" }
+```
+
+New messages are stored with role `USER`. `ASSISTANT` and `SYSTEM` roles exist in the schema for future AI integration.
+
+### Layer responsibilities
+
+| Layer | Responsibility |
+|-------|----------------|
+| `ChatController` | HTTP routes, auth guard |
+| `ChatService` | Access checks, response mapping |
+| `ChatRepository` | Prisma queries for conversations and messages |
+
+### Design decisions and trade-offs
+
+**Conversation-centric API**
+
+Messages are nested under `/conversations/:id/messages` rather than a flat `/messages` resource. This matches the data model and keeps authorization scoped to a single conversation.
+
+**USER role only from API**
+
+The API only accepts user-authored messages today. Assistant replies will be added when the AI layer is implemented, without schema changes.
+
+**No streaming or websockets**
+
+Messages are request/response CRUD. Real-time delivery can be added later with SSE or WebSockets without changing the persistence model.
+
+**Last message preview on list**
+
+Listing conversations includes the latest message snippet via a single query with `take: 1` on messages. This avoids N+1 queries for the sidebar.
+
+**Optional document link**
+
+`documentId` on create validates ownership but does not trigger RAG or context injection yet.
+
 ## Getting Started
 
 ```bash
@@ -303,5 +361,6 @@ The server starts on `http://localhost:3000` by default.
 1. Add refresh tokens with opaque random strings stored in the database
 2. Implement user profile endpoints in the users module
 3. Add text extraction and processing pipeline for uploaded PDFs
-4. Add role-based access control if needed
+4. Add AI assistant replies and RAG over document context
+5. Add role-based access control if needed
 
