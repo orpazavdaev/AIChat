@@ -17,9 +17,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, active: true },
-  { href: '#', label: 'Documents', icon: FileText, active: false },
-  { href: '#', label: 'Chat', icon: MessageSquare, active: false },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/documents', label: 'Documents', icon: FileText },
+  { href: '#', label: 'Chat', icon: MessageSquare, soon: true },
 ];
 
 function getInitials(email?: string) {
@@ -40,9 +40,9 @@ export function AppSidebar() {
       <nav className="flex flex-1 flex-col gap-1 p-3">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = item.active && pathname === item.href;
+          const isActive = !item.soon && pathname === item.href;
 
-          if (!item.active) {
+          if (item.soon) {
             return (
               <div
                 key={item.label}

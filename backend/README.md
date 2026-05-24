@@ -241,6 +241,24 @@ PDFs are stored on the local filesystem under `UPLOAD_DIR` (default `uploads/`).
 
 Text extraction, chunking, and AI processing are not implemented yet. The `UPLOADED` status is a placeholder for future processing stages.
 
+### Design decisions
+
+**Local filesystem first**
+
+Files land on disk under `uploads/{userId}/` before any cloud storage integration. This keeps the first iteration simple and makes debugging easy. S3 or object storage can replace `FileStorageService` later without changing the controller contract.
+
+**Memory storage for Multer**
+
+Uploads are buffered in memory via `memoryStorage()` then written by `FileStorageService`. For the 10MB limit this is acceptable. Streaming directly to disk can be added if file sizes grow.
+
+**Metadata separate from file content**
+
+The database stores filename, path, owner, and status — not file bytes. The path is relative (`userId/uuid.pdf`) so storage backend can change without breaking records.
+
+**Per-user isolation**
+
+Files are stored in user-scoped directories. List and upload endpoints always filter by the authenticated user's ID from the JWT.
+
 ## Getting Started
 
 ```bash
@@ -273,6 +291,7 @@ The server starts on `http://localhost:3000` by default.
 |------------------|------------------------------|-------------|
 | `NODE_ENV`       | Runtime environment          | development |
 | `PORT`           | HTTP port                    | 3000        |
+| `FRONTEND_URL`   | CORS origin for frontend     | http://localhost:3001 |
 | `DATABASE_URL`   | PostgreSQL connection string | —           |
 | `JWT_SECRET`     | Secret for signing JWTs      | —           |
 | `JWT_EXPIRES_IN` | Access token lifetime        | 15m         |
