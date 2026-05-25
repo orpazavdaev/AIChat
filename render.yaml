@@ -3,8 +3,10 @@ services:
     name: docwise-api
     runtime: node
     rootDir: backend
-    buildCommand: npm ci --include=dev && npm run build:deploy
+    buildCommand: npm ci && npm run build:deploy
     startCommand: npm run start:deploy
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: 'false'
