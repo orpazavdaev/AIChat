@@ -34,7 +34,9 @@ export function ChatConversationView({
     await ask(content);
   };
 
-  const loadError = isConversationError || isMessagesError;
+  const loadError =
+    (isConversationError && !activeConversation) ||
+    (isMessagesError && messages.length === 0);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

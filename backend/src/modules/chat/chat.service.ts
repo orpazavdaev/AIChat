@@ -157,6 +157,29 @@ export class ChatService {
     return `${prefix}${text.slice(0, 80)}...`;
   }
 
+  private normalizeCitations(raw: unknown): RagCitation[] | null {
+    if (!Array.isArray(raw) || raw.length === 0) {
+      return null;
+    }
+
+    return raw.map((item, index) => {
+      const citation = item as Partial<RagCitation>;
+      const sourceIndex = citation.sourceIndex ?? index + 1;
+
+      return {
+        sourceIndex,
+        sourceRef: citation.sourceRef ?? `source-${sourceIndex}`,
+        chunkId: citation.chunkId ?? '',
+        documentId: citation.documentId ?? '',
+        documentFilename: citation.documentFilename ?? 'Unknown',
+        chunkIndex: citation.chunkIndex ?? index,
+        pageNumber: citation.pageNumber ?? 1,
+        similarity: citation.similarity ?? 0,
+        excerpt: citation.excerpt ?? '',
+      };
+    });
+  }
+
   private toMessageResponse(message: {
     id: string;
     conversationId: string;
@@ -166,8 +189,8 @@ export class ChatService {
     createdAt: Date;
   }) {
     const citations =
-      message.role === 'ASSISTANT' && message.citations
-        ? (message.citations as RagCitation[])
+      message.role === 'ASSISTANT'
+        ? this.normalizeCitations(message.citations)
         : null;
 
     return {
@@ -176,7 +199,7 @@ export class ChatService {
       role: message.role,
       content: message.content,
       citations,
-      createdAt: message.createdAt,
+      createdAt: message.createdAt.toISOString(),
     };
   }
 }

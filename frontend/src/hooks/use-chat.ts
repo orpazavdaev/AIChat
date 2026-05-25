@@ -18,6 +18,7 @@ export function useConversations() {
     queryKey: conversationKeys.all,
     queryFn: chatApi.listConversations,
     staleTime: 30_000,
+    placeholderData: (previous) => previous,
   });
 
   const createConversation = useMutation({
@@ -34,7 +35,7 @@ export function useConversations() {
   return {
     conversations: query.data ?? [],
     isLoading: query.isLoading,
-    isError: query.isError,
+    isError: query.isError && (query.data?.length ?? 0) === 0,
     refetch: query.refetch,
     createConversation,
   };
@@ -46,6 +47,7 @@ export function useConversation(conversationId: string | null) {
     queryFn: () => chatApi.getConversation(conversationId!),
     enabled: !!conversationId,
     staleTime: 30_000,
+    placeholderData: (previous) => previous,
   });
 }
 
@@ -56,6 +58,7 @@ export function useConversationMessages(conversationId: string | null) {
     queryKey: conversationKeys.messages(conversationId ?? ''),
     queryFn: () => chatApi.listMessages(conversationId!),
     enabled: !!conversationId,
+    placeholderData: (previous) => previous,
   });
 
   const appendMessage = useCallback(
@@ -97,19 +100,18 @@ export function useConversationMessages(conversationId: string | null) {
 }
 
 export function useChatHistory(conversationId: string | undefined) {
-  const conversationsState = useConversations();
   const conversationState = useConversation(conversationId ?? null);
   const messagesState = useConversationMessages(conversationId ?? null);
 
   return {
-    ...conversationsState,
     activeConversation: conversationState.data ?? null,
     isConversationLoading: conversationState.isLoading,
-    isConversationError: conversationState.isError,
+    isConversationError:
+      conversationState.isError && !conversationState.data,
     refetchConversation: conversationState.refetch,
     messages: messagesState.messages,
     isMessagesLoading: messagesState.isLoading,
-    isMessagesError: messagesState.isError,
+    isMessagesError: messagesState.isError && messagesState.messages.length === 0,
     refetchMessages: messagesState.refetch,
     appendMessage: messagesState.appendMessage,
     invalidateMessages: messagesState.invalidate,
