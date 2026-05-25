@@ -42,7 +42,7 @@ function MessageBubble({
     >
       <div
         className={cn(
-          'max-w-[min(80%,42rem)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm transition-shadow',
+          'max-w-[min(92%,42rem)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm transition-shadow sm:max-w-[min(80%,42rem)]',
           isUser
             ? 'bg-primary text-primary-foreground shadow-primary/15'
             : 'border border-border/50 bg-card text-foreground dark:border-border/60 dark:bg-card/80',
@@ -108,7 +108,7 @@ export function MessageList({
 
   if (showEmpty) {
     return (
-      <div className="flex flex-1 items-center justify-center p-8 animate-fade-in">
+      <div className="flex flex-1 items-center justify-center p-4 sm:p-8 animate-fade-in">
         <EmptyState
           icon={MessageSquare}
           title="Start the conversation"
@@ -122,7 +122,7 @@ export function MessageList({
   return (
     <div
       ref={scrollRef}
-      className="scrollbar-thin flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-6"
+      className="scrollbar-thin flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-4 md:px-6 md:py-6"
     >
       {messages.map((message, index) => (
         <MessageBubble

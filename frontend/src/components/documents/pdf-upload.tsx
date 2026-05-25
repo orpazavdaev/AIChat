@@ -81,7 +81,7 @@ export function PdfUpload() {
 
   return (
     <Card className="border-border/60 shadow-sm">
-      <CardContent className="space-y-5 p-6">
+      <CardContent className="space-y-5 p-4 sm:p-6">
         <section
           onDragOver={(event) => {
             event.preventDefault();
@@ -90,7 +90,7 @@ export function PdfUpload() {
           onDragLeave={() => setIsDragging(false)}
           onDrop={onDrop}
           className={cn(
-            'flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all duration-200',
+            'flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-all duration-200 sm:px-6 sm:py-10',
             isDragging
               ? 'border-primary bg-primary/5'
               : 'border-border/80 bg-muted/20 hover:border-primary/40',
@@ -130,7 +130,7 @@ export function PdfUpload() {
 
         {selectedFile && (
           <section className="rounded-xl border border-border/60 bg-muted/20 p-4">
-            <header className="flex items-center justify-between gap-3">
+            <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <article className="min-w-0">
                 <p className="truncate text-sm font-medium">{selectedFile.name}</p>
                 <p className="text-xs text-muted-foreground">

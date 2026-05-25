@@ -54,6 +54,7 @@ export function ConversationList({
   onRetry,
   onCreate,
   isCreating,
+  className,
 }: {
   conversations: Conversation[];
   activeConversationId?: string;
@@ -62,9 +63,15 @@ export function ConversationList({
   onRetry?: () => void;
   onCreate: () => void;
   isCreating: boolean;
+  className?: string;
 }) {
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-r border-border/60 bg-muted/15 dark:bg-muted/10">
+    <aside
+      className={cn(
+        'flex h-full w-72 shrink-0 flex-col border-r border-border/60 bg-muted/15 dark:bg-muted/10',
+        className,
+      )}
+    >
       <header className="flex items-center justify-between border-b border-border/60 px-4 py-3.5">
         <h2 className="text-sm font-semibold tracking-tight">History</h2>
         <Button size="sm" variant="outline" onClick={onCreate} disabled={isCreating}>

@@ -30,7 +30,7 @@ export function DocumentsPageContent() {
         title="Documents"
         description="Upload PDFs to your workspace."
       />
-      <section className="space-y-8 p-8">
+      <section className="space-y-8 p-4 sm:p-6 lg:p-8">
         <PdfUpload />
         <section className="space-y-4">
           <header>

@@ -30,7 +30,7 @@ function DocumentRow({
         highlighted && 'ring-2 ring-primary/40',
       )}
     >
-      <CardContent className="flex items-center gap-4 p-4">
+      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/10">
           <FileText className="size-5" />
         </span>
@@ -40,7 +40,9 @@ function DocumentRow({
             Uploaded {formatDate(document.createdAt)}
           </p>
         </div>
-        <Badge variant="secondary">{document.status}</Badge>
+        <Badge variant="secondary" className="self-start sm:self-auto">
+          {document.status}
+        </Badge>
       </CardContent>
     </Card>
   );
@@ -51,7 +53,7 @@ function DocumentsSkeleton() {
     <div className="space-y-3">
       {Array.from({ length: 3 }).map((_, index) => (
         <Card key={index} className="border-border/60 py-0 shadow-none">
-          <CardContent className="flex items-center gap-4 p-4">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
             <Skeleton className="size-10 rounded-xl" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-48" />

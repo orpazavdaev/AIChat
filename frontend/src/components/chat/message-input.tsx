@@ -41,7 +41,7 @@ export function MessageInput({
   };
 
   return (
-    <footer className="shrink-0 border-t border-border/60 bg-background/95 px-4 py-4 backdrop-blur-sm">
+    <footer className="shrink-0 border-t border-border/60 bg-background/95 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm md:px-4 md:py-4">
       <form
         onSubmit={handleSubmit}
         className={cn(

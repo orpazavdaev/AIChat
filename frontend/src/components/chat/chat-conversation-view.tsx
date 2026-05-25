@@ -7,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { bidiTextProps } from '@/lib/text-direction';
 import { useChatHistory } from '@/hooks/use-chat';
 import { useRagStream } from '@/hooks/use-rag-stream';
+import { ChevronLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export function ChatConversationView({
   conversationId,
@@ -41,7 +43,14 @@ export function ChatConversationView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="shrink-0 border-b border-border/60 px-6 py-4">
+      <header className="shrink-0 border-b border-border/60 px-4 py-3 md:px-6 md:py-4">
+        <Link
+          href="/chat"
+          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground md:hidden"
+        >
+          <ChevronLeft className="size-4" />
+          History
+        </Link>
         {isConversationLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-5 w-48" />
@@ -60,7 +69,7 @@ export function ChatConversationView({
         )}
       </header>
       {loadError && (
-        <div className="shrink-0 px-6 pt-4">
+        <div className="shrink-0 px-4 pt-4 md:px-6">
           <AlertBanner
             message="Could not load this conversation."
             onRetry={() => {

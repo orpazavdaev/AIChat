@@ -2,6 +2,7 @@
 
 import { ConversationList } from '@/components/chat/conversation-list';
 import { useConversations } from '@/hooks/use-chat';
+import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 
 function getActiveConversationId(pathname: string) {
@@ -27,8 +28,13 @@ export default function ChatLayout({
 
   return (
     <section className="flex min-h-0 flex-1 flex-col">
-      <header className="shrink-0 border-b border-border/60 px-8 py-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Chat</h1>
+      <header
+        className={cn(
+          'shrink-0 border-b border-border/60 px-4 py-4 md:px-8 md:py-6',
+          activeConversationId && 'hidden md:block',
+        )}
+      >
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Chat</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Conversation history across your document Q&amp;A sessions
         </p>
@@ -42,8 +48,16 @@ export default function ChatLayout({
           onRetry={() => void refetch()}
           onCreate={handleCreateConversation}
           isCreating={createConversation.isPending}
+          className={cn(
+            activeConversationId ? 'hidden md:flex' : 'flex w-full md:w-72',
+          )}
         />
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background transition-colors duration-200">
+        <div
+          className={cn(
+            'flex min-h-0 min-w-0 flex-1 flex-col bg-background transition-colors duration-200',
+            !activeConversationId && 'hidden md:flex',
+          )}
+        >
           {children}
         </div>
       </div>
