@@ -9,10 +9,12 @@ export function MessageInput({
   onSend,
   disabled,
   isSending,
+  error: externalError,
 }: {
   onSend: (content: string) => Promise<void>;
   disabled?: boolean;
   isSending?: boolean;
+  error?: string | null;
 }) {
   const [content, setContent] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -61,8 +63,10 @@ export function MessageInput({
           )}
         </Button>
       </form>
-      {error && (
-        <p className="mt-2 text-sm text-destructive">{error}</p>
+      {(error || externalError) && (
+        <p className="mt-2 text-sm text-destructive">
+          {error ?? externalError}
+        </p>
       )}
     </footer>
   );

@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../auth/types/auth.types';
@@ -49,5 +58,20 @@ export class ChatController {
     @Body() dto: AskQuestionDto,
   ) {
     return this.chatService.ask(user.userId, conversationId, dto.question);
+  }
+
+  @Post('conversations/:id/ask/stream')
+  askStream(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') conversationId: string,
+    @Body() dto: AskQuestionDto,
+    @Res() res: Response,
+  ) {
+    return this.chatService.askStream(
+      user.userId,
+      conversationId,
+      dto.question,
+      res,
+    );
   }
 }

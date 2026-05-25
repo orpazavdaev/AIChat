@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ChatRepository } from './chat.repository';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
@@ -74,6 +75,20 @@ export class ChatService {
 
   ask(userId: string, conversationId: string, question: string) {
     return this.ragChatService.ask(userId, conversationId, question);
+  }
+
+  askStream(
+    userId: string,
+    conversationId: string,
+    question: string,
+    res: Response,
+  ) {
+    return this.ragChatService.askStream(
+      userId,
+      conversationId,
+      question,
+      res,
+    );
   }
 
   private async ensureConversationAccess(conversationId: string, userId: string) {

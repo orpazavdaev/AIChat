@@ -25,3 +25,24 @@ export interface CreateConversationRequest {
 export interface CreateMessageRequest {
   content: string;
 }
+
+export interface RagCitation {
+  chunkId: string;
+  documentId: string;
+  documentFilename: string;
+  chunkIndex: number;
+  similarity: number;
+  excerpt: string;
+}
+
+export type RagSseEvent =
+  | { type: 'user_message'; userMessageId: string }
+  | { type: 'citations'; citations: RagCitation[] }
+  | { type: 'token'; content: string }
+  | { type: 'done'; assistantMessageId: string }
+  | { type: 'error'; message: string };
+
+export interface StreamingAssistantMessage {
+  content: string;
+  citations: RagCitation[];
+}

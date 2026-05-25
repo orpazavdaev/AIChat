@@ -4,6 +4,7 @@ import { ConversationList } from '@/components/chat/conversation-list';
 import { MessageInput } from '@/components/chat/message-input';
 import { MessageList } from '@/components/chat/message-list';
 import { useConversationMessages, useConversations } from '@/hooks/use-chat';
+import { useRagStream } from '@/hooks/use-rag-stream';
 import { useRouter } from 'next/navigation';
 
 export function ChatPageContent({
@@ -13,8 +14,15 @@ export function ChatPageContent({
 }) {
   const router = useRouter();
   const { conversations, isLoading, createConversation } = useConversations();
-  const { messages, isLoading: messagesLoading, sendMessage } =
+  const { messages, isLoading: messagesLoading } =
     useConversationMessages(conversationId ?? null);
+  const {
+    ask,
+    isStreaming,
+    streamingMessage,
+    pendingQuestion,
+    error: streamError,
+  } = useRagStream(conversationId ?? null);
 
   const handleCreateConversation = async () => {
     const conversation = await createConversation.mutateAsync({});
@@ -25,7 +33,7 @@ export function ChatPageContent({
     if (!conversationId) {
       return;
     }
-    await sendMessage.mutateAsync(content);
+    await ask(content);
   };
 
   return (
@@ -33,7 +41,7 @@ export function ChatPageContent({
       <header className="border-b border-border/60 px-8 py-6">
         <h1 className="text-2xl font-semibold tracking-tight">Chat</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Send messages and pick up conversations where you left off
+          Ask questions about your documents with AI-powered answers
         </p>
       </header>
       <div className="flex min-h-0 flex-1">
@@ -50,16 +58,23 @@ export function ChatPageContent({
               <div className="space-y-2">
                 <p className="font-medium">Select or start a conversation</p>
                 <p className="text-sm text-muted-foreground">
-                  Create a new chat to send your first message
+                  Create a new chat to ask your first question
                 </p>
               </div>
             </div>
           ) : (
             <>
-              <MessageList messages={messages} isLoading={messagesLoading} />
+              <MessageList
+                messages={messages}
+                isLoading={messagesLoading}
+                pendingQuestion={pendingQuestion}
+                streamingMessage={streamingMessage}
+                isStreaming={isStreaming}
+              />
               <MessageInput
                 onSend={handleSend}
-                isSending={sendMessage.isPending}
+                isSending={isStreaming}
+                error={streamError}
               />
             </>
           )}

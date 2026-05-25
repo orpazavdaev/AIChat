@@ -2,7 +2,7 @@
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import type { Message } from '@/types/chat';
+import type { Message, RagCitation, StreamingAssistantMessage } from '@/types/chat';
 import { useEffect, useRef } from 'react';
 
 function formatTime(value: string) {
@@ -12,7 +12,32 @@ function formatTime(value: string) {
   }).format(new Date(value));
 }
 
-function MessageBubble({ message }: { message: Message }) {
+function CitationsList({ citations }: { citations: RagCitation[] }) {
+  if (citations.length === 0) {
+    return null;
+  }
+
+  return (
+    <ul className="mt-2 space-y-1 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+      {citations.map((citation) => (
+        <li key={citation.chunkId}>
+          {citation.documentFilename} · chunk {citation.chunkIndex} ·{' '}
+          {Math.round(citation.similarity * 100)}%
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MessageBubble({
+  message,
+  citations,
+  isTyping,
+}: {
+  message: Pick<Message, 'role' | 'content' | 'createdAt'> & { id?: string };
+  citations?: RagCitation[];
+  isTyping?: boolean;
+}) {
   const isUser = message.role === 'USER';
 
   return (
@@ -25,15 +50,26 @@ function MessageBubble({ message }: { message: Message }) {
             : 'border border-border/60 bg-background text-foreground',
         )}
       >
-        <p className="whitespace-pre-wrap">{message.content}</p>
-        <p
-          className={cn(
-            'mt-1 text-[10px]',
-            isUser ? 'text-primary-foreground/70' : 'text-muted-foreground',
-          )}
-        >
-          {formatTime(message.createdAt)}
-        </p>
+        {isTyping && !message.content ? (
+          <div className="flex items-center gap-1 py-1">
+            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0ms]" />
+            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
+            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
+          </div>
+        ) : (
+          <p className="whitespace-pre-wrap">{message.content}</p>
+        )}
+        {!isUser && citations && <CitationsList citations={citations} />}
+        {!isTyping && (
+          <p
+            className={cn(
+              'mt-1 text-[10px]',
+              isUser ? 'text-primary-foreground/70' : 'text-muted-foreground',
+            )}
+          >
+            {formatTime(message.createdAt)}
+          </p>
+        )}
       </div>
     </article>
   );
@@ -42,15 +78,21 @@ function MessageBubble({ message }: { message: Message }) {
 export function MessageList({
   messages,
   isLoading,
+  pendingQuestion,
+  streamingMessage,
+  isStreaming,
 }: {
   messages: Message[];
   isLoading: boolean;
+  pendingQuestion?: string | null;
+  streamingMessage?: StreamingAssistantMessage | null;
+  isStreaming?: boolean;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, pendingQuestion, streamingMessage, isStreaming]);
 
   if (isLoading) {
     return (
@@ -68,11 +110,14 @@ export function MessageList({
     );
   }
 
-  if (messages.length === 0) {
+  const showEmpty =
+    messages.length === 0 && !pendingQuestion && !streamingMessage;
+
+  if (showEmpty) {
     return (
       <div className="flex flex-1 items-center justify-center p-6">
         <p className="text-sm text-muted-foreground">
-          Send a message to start the conversation
+          Ask a question about your documents
         </p>
       </div>
     );
@@ -83,6 +128,26 @@ export function MessageList({
       {messages.map((message) => (
         <MessageBubble key={message.id} message={message} />
       ))}
+      {pendingQuestion && (
+        <MessageBubble
+          message={{
+            role: 'USER',
+            content: pendingQuestion,
+            createdAt: new Date().toISOString(),
+          }}
+        />
+      )}
+      {(isStreaming || streamingMessage) && (
+        <MessageBubble
+          message={{
+            role: 'ASSISTANT',
+            content: streamingMessage?.content ?? '',
+            createdAt: new Date().toISOString(),
+          }}
+          citations={streamingMessage?.citations}
+          isTyping={isStreaming && !streamingMessage?.content}
+        />
+      )}
       <div ref={bottomRef} />
     </div>
   );

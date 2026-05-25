@@ -1,28 +1,31 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Response } from 'express';
 import OpenAI from 'openai';
 import { DocumentsRepository } from '../../documents/documents.repository';
 import { VectorSearchService } from '../../documents/retrieval/vector-search.service';
 import type { SimilarChunk } from '../../documents/retrieval/similar-chunk.types';
 import { ChatRepository } from '../chat.repository';
 import { buildNoContextAnswer, buildRagPrompt } from './prompt-builder';
+import type { RagCitation, RagSseEvent } from './rag-chat.types';
+import { initSse, writeSseEvent } from './sse-writer';
+
+export type { RagCitation } from './rag-chat.types';
 
 const CHAT_MODEL = 'gpt-4o-mini';
-
-export type RagCitation = {
-  chunkId: string;
-  documentId: string;
-  documentFilename: string;
-  chunkIndex: number;
-  similarity: number;
-  excerpt: string;
-};
 
 export type RagChatResult = {
   answer: string;
   citations: RagCitation[];
   userMessageId: string;
   assistantMessageId: string;
+};
+
+type PreparedAsk = {
+  userMessageId: string;
+  citations: RagCitation[];
+  noContext: boolean;
+  prompt: { system: string; user: string } | null;
 };
 
 @Injectable()
@@ -41,6 +44,75 @@ export class RagChatService {
     conversationId: string,
     question: string,
   ): Promise<RagChatResult> {
+    const prepared = await this.prepare(userId, conversationId, question);
+    const answer = prepared.noContext
+      ? buildNoContextAnswer()
+      : await this.complete(
+          prepared.prompt!.system,
+          prepared.prompt!.user,
+        );
+
+    const assistantMessage = await this.chatRepository.createAssistantMessage(
+      conversationId,
+      answer,
+    );
+
+    return {
+      answer,
+      citations: prepared.citations,
+      userMessageId: prepared.userMessageId,
+      assistantMessageId: assistantMessage.id,
+    };
+  }
+
+  async askStream(
+    userId: string,
+    conversationId: string,
+    question: string,
+    res: Response,
+  ): Promise<void> {
+    initSse(res);
+
+    try {
+      const prepared = await this.prepare(userId, conversationId, question);
+
+      writeSseEvent(res, {
+        type: 'user_message',
+        userMessageId: prepared.userMessageId,
+      });
+      writeSseEvent(res, {
+        type: 'citations',
+        citations: prepared.citations,
+      });
+
+      const answer = await this.collectStreamedAnswer(prepared, (token) => {
+        writeSseEvent(res, { type: 'token', content: token });
+      });
+
+      const assistantMessage =
+        await this.chatRepository.createAssistantMessage(
+          conversationId,
+          answer,
+        );
+
+      writeSseEvent(res, {
+        type: 'done',
+        assistantMessageId: assistantMessage.id,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Stream failed';
+      this.writeError(res, message);
+    } finally {
+      res.end();
+    }
+  }
+
+  private async prepare(
+    userId: string,
+    conversationId: string,
+    question: string,
+  ): Promise<PreparedAsk> {
     const conversation = await this.chatRepository.findConversationByIdForUser(
       conversationId,
       userId,
@@ -62,17 +134,11 @@ export class RagChatService {
     );
 
     if (chunks.length === 0) {
-      const answer = buildNoContextAnswer();
-      const assistantMessage = await this.chatRepository.createAssistantMessage(
-        conversationId,
-        answer,
-      );
-
       return {
-        answer,
-        citations: [],
         userMessageId: userMessage.id,
-        assistantMessageId: assistantMessage.id,
+        citations: [],
+        noContext: true,
+        prompt: null,
       };
     }
 
@@ -87,18 +153,48 @@ export class RagChatService {
       })),
     );
 
-    const answer = await this.complete(prompt.system, prompt.user);
-    const assistantMessage = await this.chatRepository.createAssistantMessage(
-      conversationId,
-      answer,
-    );
-
     return {
-      answer,
-      citations,
       userMessageId: userMessage.id,
-      assistantMessageId: assistantMessage.id,
+      citations,
+      noContext: false,
+      prompt,
     };
+  }
+
+  private async collectStreamedAnswer(
+    prepared: PreparedAsk,
+    onToken: (token: string) => void,
+  ): Promise<string> {
+    if (prepared.noContext) {
+      const answer = buildNoContextAnswer();
+      onToken(answer);
+      return answer;
+    }
+
+    let answer = '';
+
+    for await (const token of this.streamComplete(
+      prepared.prompt!.system,
+      prepared.prompt!.user,
+    )) {
+      answer += token;
+      onToken(token);
+    }
+
+    if (!answer.trim()) {
+      const fallback = buildNoContextAnswer();
+      if (!answer) {
+        onToken(fallback);
+      }
+      return fallback;
+    }
+
+    return answer;
+  }
+
+  private writeError(res: Response, message: string): void {
+    const event: RagSseEvent = { type: 'error', message };
+    writeSseEvent(res, event);
   }
 
   private async buildCitations(
@@ -125,22 +221,39 @@ export class RagChatService {
   }
 
   private async complete(system: string, user: string): Promise<string> {
-    const response = await this.getClient().chat.completions.create({
+    let answer = '';
+
+    for await (const token of this.streamComplete(system, user)) {
+      answer += token;
+    }
+
+    if (!answer.trim()) {
+      return buildNoContextAnswer();
+    }
+
+    return answer;
+  }
+
+  private async *streamComplete(
+    system: string,
+    user: string,
+  ): AsyncGenerator<string> {
+    const stream = await this.getClient().chat.completions.create({
       model: this.getModel(),
       temperature: 0,
+      stream: true,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
     });
 
-    const content = response.choices[0]?.message?.content?.trim();
-
-    if (!content) {
-      return buildNoContextAnswer();
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        yield delta;
+      }
     }
-
-    return content;
   }
 
   private getClient(): OpenAI {
