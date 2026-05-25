@@ -9,7 +9,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import {
   FileText,
-  LayoutDashboard,
   LogOut,
   MessageSquare,
 } from 'lucide-react';
@@ -17,7 +16,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/documents', label: 'Documents', icon: FileText },
   { href: '/chat', label: 'Chat', icon: MessageSquare },
 ];

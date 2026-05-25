@@ -1,6 +1,6 @@
 # AIChat Frontend
 
-Next.js App Router frontend for an AI document chat platform. Includes authentication, a documents upload experience, and a dashboard shell.
+Next.js App Router frontend for an AI document chat platform. Includes authentication, document upload, and RAG chat.
 
 ## Folder Structure
 
@@ -41,7 +41,7 @@ frontend/
 | Group | Routes | Layout |
 |-------|--------|--------|
 | `(auth)` | `/login`, `/register` | Split-panel auth shell, no sidebar |
-| `(app)` | `/dashboard`, `/documents`, `/chat`, `/chat/[id]` | Sidebar + main content, `AuthGuard` |
+| `(app)` | `/documents`, `/chat`, `/chat/[id]` | Sidebar + main content, `AuthGuard` |
 
 Unauthenticated users hitting `(app)` routes are redirected to `/login`.
 
@@ -63,7 +63,7 @@ JSON endpoints use `apiClient`. File uploads use `XMLHttpRequest` in `documentsA
 | `lib/auth/token-storage.ts` | Persists access token + user in `localStorage` |
 | `hooks/use-auth.ts` | Login/register mutations, `me` query, logout |
 
-After login or register, the token is stored and the user is redirected to `/dashboard`. Protected API calls read the token from storage and send `Authorization: Bearer <token>`.
+After login or register, the token is stored and the user is redirected to `/chat`. Protected API calls read the token from storage and send `Authorization: Bearer <token>`.
 
 ### React Query
 

@@ -42,7 +42,7 @@ export function useAuth() {
       tokenStorage.setAccessToken(data.accessToken);
       tokenStorage.setUser(data.user);
       queryClient.setQueryData(['auth', 'me'], data.user);
-      router.push('/dashboard');
+      router.push('/chat');
     },
   });
 
@@ -52,7 +52,7 @@ export function useAuth() {
       tokenStorage.setAccessToken(data.accessToken);
       tokenStorage.setUser(data.user);
       queryClient.setQueryData(['auth', 'me'], data.user);
-      router.push('/dashboard');
+      router.push('/chat');
     },
   });
 

@@ -432,7 +432,7 @@ erDiagram
 flowchart TB
   subgraph Routes["App Router"]
     Auth["(auth)/login · register"]
-    App["(app)/dashboard · documents · chat"]
+    App["(app)/documents · chat"]
   end
 
   subgraph Guards
@@ -464,7 +464,6 @@ flowchart TB
 
 | Route | Purpose |
 |-------|---------|
-| `/dashboard` | Workspace overview |
 | `/documents` | PDF upload + file list |
 | `/chat` | New conversation empty state |
 | `/chat/[id]` | Active thread with streaming |
