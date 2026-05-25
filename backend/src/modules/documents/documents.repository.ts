@@ -63,6 +63,7 @@ export class DocumentsRepository {
               data: chunks.map((chunk) => ({
                 documentId,
                 index: chunk.index,
+                pageNumber: chunk.pageNumber,
                 content: chunk.content,
               })),
             }),
