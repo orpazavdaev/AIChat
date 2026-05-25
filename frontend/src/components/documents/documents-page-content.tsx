@@ -5,9 +5,24 @@ import { PdfUpload } from '@/components/documents/pdf-upload';
 import { AppHeader } from '@/components/layout/app-header';
 import { AlertBanner } from '@/components/ui/alert-banner';
 import { useDocuments } from '@/hooks/use-documents';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 export function DocumentsPageContent() {
   const { documents, isLoading, isError, refetch } = useDocuments();
+  const searchParams = useSearchParams();
+  const highlightDocumentId = searchParams.get('doc');
+
+  useEffect(() => {
+    if (!highlightDocumentId) {
+      return;
+    }
+
+    const element = globalThis.document.getElementById(
+      `doc-${highlightDocumentId}`,
+    );
+    element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlightDocumentId, documents]);
 
   return (
     <>
@@ -33,6 +48,7 @@ export function DocumentsPageContent() {
           <DocumentsList
             documents={documents}
             isLoading={isLoading && !isError}
+            highlightDocumentId={highlightDocumentId}
           />
         </section>
       </section>

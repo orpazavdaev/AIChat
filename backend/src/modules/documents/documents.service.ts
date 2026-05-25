@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DocumentStatus } from '@prisma/client';
 import { AiService } from '../../common/ai/ai.service';
-import { chunkText } from '../../common/utils';
+import { chunkPagedText } from '../../common/utils';
 import { DocumentsRepository } from './documents.repository';
 import { PdfParserService } from './extraction/pdf-parser.service';
 import { VectorSearchService } from './retrieval/vector-search.service';
@@ -41,14 +41,25 @@ export class DocumentsService {
 
   private async extractAndStore(documentId: string, source: Buffer) {
     try {
-      const content = await this.pdfParserService.extractFromBuffer(source);
-      const textChunks = chunkText(content);
+      const extracted = await this.pdfParserService.extractFromBuffer(source);
+      const textChunks = chunkPagedText(
+        extracted.pages.length > 0
+          ? extracted.pages
+          : [{ pageNumber: 1, text: extracted.text }],
+      );
 
       if (textChunks.length === 0) {
         throw new Error('No extractable text in PDF');
       }
 
-      await this.documentsRepository.replaceChunks(documentId, textChunks);
+      await this.documentsRepository.replaceChunks(
+        documentId,
+        textChunks.map((chunk) => ({
+          index: chunk.index,
+          content: chunk.content,
+          pageNumber: chunk.pageNumber ?? 1,
+        })),
+      );
 
       const storedChunks =
         await this.documentsRepository.findChunksByDocumentId(documentId);
@@ -65,7 +76,7 @@ export class DocumentsService {
 
       return this.documentsRepository.updateExtraction(
         documentId,
-        content,
+        extracted.text,
         DocumentStatus.READY,
       );
     } catch {

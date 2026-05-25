@@ -1,7 +1,7 @@
 export type RagContextChunk = {
   sourceId: string;
   documentFilename: string;
-  chunkIndex: number;
+  pageNumber: number;
   content: string;
 };
 
@@ -20,7 +20,7 @@ export function buildRagPrompt(
   const contextBlock = chunks
     .map(
       (chunk) =>
-        `[${chunk.sourceId}] (document: ${chunk.documentFilename}, chunk ${chunk.chunkIndex})\n${chunk.content}`,
+        `[${chunk.sourceId}] (document: ${chunk.documentFilename}, page ${chunk.pageNumber})\n${chunk.content}`,
     )
     .join('\n\n');
 

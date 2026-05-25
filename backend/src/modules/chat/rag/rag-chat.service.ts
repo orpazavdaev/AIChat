@@ -51,6 +51,7 @@ export class RagChatService {
     const assistantMessage = await this.chatRepository.createAssistantMessage(
       conversationId,
       finalAnswer,
+      prepared.citations,
     );
 
     return {
@@ -89,6 +90,7 @@ export class RagChatService {
         await this.chatRepository.createAssistantMessage(
           conversationId,
           answer,
+          prepared.citations,
         );
 
       writeSseEvent(res, {
@@ -146,10 +148,10 @@ export class RagChatService {
     const citations = await this.buildCitations(userId, chunks);
     const prompt = buildRagPrompt(
       question,
-      citations.map((citation, index) => ({
-        sourceId: `source-${index + 1}`,
+      citations.map((citation) => ({
+        sourceId: citation.sourceRef,
         documentFilename: citation.documentFilename,
-        chunkIndex: citation.chunkIndex,
+        pageNumber: citation.pageNumber,
         content: citation.excerpt,
       })),
     );
@@ -211,13 +213,20 @@ export class RagChatService {
       documents.map((document) => [document.id, document.filename]),
     );
 
-    return chunks.map((chunk) => ({
-      chunkId: chunk.id,
-      documentId: chunk.documentId,
-      documentFilename: filenameById.get(chunk.documentId) ?? 'Unknown',
-      chunkIndex: chunk.index,
-      similarity: chunk.similarity,
-      excerpt: chunk.content,
-    }));
+    return chunks.map((chunk, index) => {
+      const sourceIndex = index + 1;
+
+      return {
+        sourceIndex,
+        sourceRef: `source-${sourceIndex}`,
+        chunkId: chunk.id,
+        documentId: chunk.documentId,
+        documentFilename: filenameById.get(chunk.documentId) ?? 'Unknown',
+        chunkIndex: chunk.index,
+        pageNumber: chunk.pageNumber,
+        similarity: chunk.similarity,
+        excerpt: chunk.content,
+      };
+    });
   }
 }

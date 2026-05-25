@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import type { Document } from '@/types/document';
 import { FileText } from 'lucide-react';
 
@@ -14,9 +15,21 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function DocumentRow({ document }: { document: Document }) {
+function DocumentRow({
+  document,
+  highlighted,
+}: {
+  document: Document;
+  highlighted?: boolean;
+}) {
   return (
-    <Card className="border-border/60 py-0 shadow-none transition-shadow duration-200 hover:shadow-sm">
+    <Card
+      id={`doc-${document.id}`}
+      className={cn(
+        'scroll-mt-24 border-border/60 py-0 shadow-none transition-shadow duration-200 hover:shadow-sm',
+        highlighted && 'ring-2 ring-primary/40',
+      )}
+    >
       <CardContent className="flex items-center gap-4 p-4">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/10">
           <FileText className="size-5" />
@@ -55,9 +68,11 @@ function DocumentsSkeleton() {
 export function DocumentsList({
   documents,
   isLoading,
+  highlightDocumentId,
 }: {
   documents: Document[];
   isLoading: boolean;
+  highlightDocumentId?: string | null;
 }) {
   if (isLoading) {
     return <DocumentsSkeleton />;
@@ -80,7 +95,11 @@ export function DocumentsList({
   return (
     <div className="space-y-3">
       {documents.map((document) => (
-        <DocumentRow key={document.id} document={document} />
+        <DocumentRow
+          key={document.id}
+          document={document}
+          highlighted={highlightDocumentId === document.id}
+        />
       ))}
     </div>
   );

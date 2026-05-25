@@ -7,6 +7,7 @@ type SimilarChunkRow = {
   id: string;
   documentId: string;
   index: number;
+  pageNumber: number;
   content: string;
   similarity: number;
 };
@@ -52,7 +53,7 @@ export class DocumentsRepository {
 
   replaceChunks(
     documentId: string,
-    chunks: { index: number; content: string }[],
+    chunks: { index: number; content: string; pageNumber: number }[],
   ) {
     return this.prisma.$transaction([
       this.prisma.documentChunk.deleteMany({ where: { documentId } }),
@@ -110,6 +111,7 @@ export class DocumentsRepository {
             c.id,
             c."documentId",
             c.index,
+            c."pageNumber",
             c.content,
             1 - (c.embedding <=> $1::vector) AS similarity
           FROM "DocumentChunk" c
@@ -132,6 +134,7 @@ export class DocumentsRepository {
             c.id,
             c."documentId",
             c.index,
+            c."pageNumber",
             c.content,
             1 - (c.embedding <=> $1::vector) AS similarity
           FROM "DocumentChunk" c
@@ -151,6 +154,7 @@ export class DocumentsRepository {
       id: row.id,
       documentId: row.documentId,
       index: Number(row.index),
+      pageNumber: Number(row.pageNumber),
       content: row.content,
       similarity: Number(row.similarity),
     }));

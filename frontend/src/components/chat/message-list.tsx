@@ -1,35 +1,20 @@
 'use client';
 
 import { MessageListSkeleton } from '@/components/chat/message-skeleton';
+import { MessageCitations } from '@/components/chat/message-citations';
+import { MessageContent } from '@/components/chat/message-content';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TypingIndicator } from '@/components/ui/typing-indicator';
 import { cn } from '@/lib/utils';
 import type { Message, RagCitation, StreamingAssistantMessage } from '@/types/chat';
 import { MessageSquare } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 function formatTime(value: string) {
   return new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value));
-}
-
-function CitationsList({ citations }: { citations: RagCitation[] }) {
-  if (citations.length === 0) {
-    return null;
-  }
-
-  return (
-    <ul className="mt-2.5 space-y-1 border-t border-border/50 pt-2.5 text-[11px] leading-relaxed text-muted-foreground">
-      {citations.map((citation) => (
-        <li key={citation.chunkId}>
-          {citation.documentFilename} · chunk {citation.chunkIndex} ·{' '}
-          {Math.round(citation.similarity * 100)}%
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 function MessageBubble({
@@ -39,11 +24,13 @@ function MessageBubble({
   animate,
 }: {
   message: Pick<Message, 'role' | 'content' | 'createdAt'> & { id?: string };
-  citations?: RagCitation[];
+  citations?: RagCitation[] | null;
   isTyping?: boolean;
   animate?: boolean;
 }) {
+  const [activeSourceRef, setActiveSourceRef] = useState<string | null>(null);
   const isUser = message.role === 'USER';
+  const sourceList = citations ?? [];
 
   return (
     <article
@@ -64,9 +51,19 @@ function MessageBubble({
         {isTyping && !message.content ? (
           <TypingIndicator />
         ) : (
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <MessageContent
+            content={message.content}
+            citations={isUser ? undefined : sourceList}
+            onSourceClick={setActiveSourceRef}
+          />
         )}
-        {!isUser && citations && <CitationsList citations={citations} />}
+        {!isUser && !isTyping && sourceList.length > 0 && (
+          <MessageCitations
+            citations={sourceList}
+            activeSourceRef={activeSourceRef}
+            onSourceSelect={setActiveSourceRef}
+          />
+        )}
         {!isTyping && (
           <p
             className={cn(
@@ -131,6 +128,7 @@ export function MessageList({
         <MessageBubble
           key={message.id}
           message={message}
+          citations={message.role === 'ASSISTANT' ? message.citations : null}
           animate={index >= messages.length - 2}
         />
       ))}

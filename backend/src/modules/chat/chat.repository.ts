@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MessageRole, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/database/prisma.service';
+import type { RagCitation } from './rag/rag-chat.types';
 
 @Injectable()
 export class ChatRepository {
@@ -60,11 +61,16 @@ export class ChatRepository {
     return message;
   }
 
-  async createAssistantMessage(conversationId: string, content: string) {
+  async createAssistantMessage(
+    conversationId: string,
+    content: string,
+    citations: RagCitation[] = [],
+  ) {
     const message = await this.prisma.message.create({
       data: {
         content,
         role: MessageRole.ASSISTANT,
+        citations: citations as unknown as Prisma.InputJsonValue,
         conversation: { connect: { id: conversationId } },
       },
     });

@@ -6,6 +6,12 @@ export type ChunkTextOptions = {
 export type TextChunk = {
   index: number;
   content: string;
+  pageNumber?: number;
+};
+
+export type PagedTextInput = {
+  pageNumber: number;
+  text: string;
 };
 
 const DEFAULT_CHUNK_SIZE = 800;
@@ -43,6 +49,27 @@ export function chunkText(
     }
 
     start += step;
+  }
+
+  return chunks;
+}
+
+export function chunkPagedText(
+  pages: PagedTextInput[],
+  options: ChunkTextOptions = {},
+): TextChunk[] {
+  const chunks: TextChunk[] = [];
+
+  for (const page of pages) {
+    const pageChunks = chunkText(page.text, options);
+
+    for (const pageChunk of pageChunks) {
+      chunks.push({
+        index: chunks.length,
+        content: pageChunk.content,
+        pageNumber: page.pageNumber,
+      });
+    }
   }
 
   return chunks;

@@ -1,8 +1,11 @@
 export type RagCitation = {
+  sourceIndex: number;
+  sourceRef: string;
   chunkId: string;
   documentId: string;
   documentFilename: string;
   chunkIndex: number;
+  pageNumber: number;
   similarity: number;
   excerpt: string;
 };

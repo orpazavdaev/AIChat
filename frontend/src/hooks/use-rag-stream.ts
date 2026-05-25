@@ -39,6 +39,7 @@ export function useRagStream(conversationId: string | null) {
                 conversationId,
                 role: 'USER',
                 content: question,
+                citations: null,
                 createdAt: new Date().toISOString(),
               });
               setPendingQuestion(null);

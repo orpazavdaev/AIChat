@@ -7,6 +7,7 @@ import { ChatRepository } from './chat.repository';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { RagChatService } from './rag/rag-chat.service';
+import type { RagCitation } from './rag/rag-chat.types';
 
 @Injectable()
 export class ChatService {
@@ -161,13 +162,20 @@ export class ChatService {
     conversationId: string;
     role: string;
     content: string;
+    citations?: unknown | null;
     createdAt: Date;
   }) {
+    const citations =
+      message.role === 'ASSISTANT' && message.citations
+        ? (message.citations as RagCitation[])
+        : null;
+
     return {
       id: message.id,
       conversationId: message.conversationId,
       role: message.role,
       content: message.content,
+      citations,
       createdAt: message.createdAt,
     };
   }
