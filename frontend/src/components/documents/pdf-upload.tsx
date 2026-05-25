@@ -1,5 +1,6 @@
 'use client';
 
+import { AlertBanner } from '@/components/ui/alert-banner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -89,7 +90,7 @@ export function PdfUpload() {
           onDragLeave={() => setIsDragging(false)}
           onDrop={onDrop}
           className={cn(
-            'flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors',
+            'flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all duration-200',
             isDragging
               ? 'border-primary bg-primary/5'
               : 'border-border/80 bg-muted/20 hover:border-primary/40',
@@ -160,11 +161,7 @@ export function PdfUpload() {
           </section>
         )}
 
-        {error && (
-          <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
+        {error && <AlertBanner message={error} />}
       </CardContent>
     </Card>
   );

@@ -1,7 +1,9 @@
 'use client';
 
+import { AlertBanner } from '@/components/ui/alert-banner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { Loader2, Send } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 
@@ -18,6 +20,8 @@ export function MessageInput({
 }) {
   const [content, setContent] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const displayError = error ?? externalError;
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -36,13 +40,19 @@ export function MessageInput({
   };
 
   return (
-    <footer className="border-t border-border/60 bg-background p-4">
-      <form onSubmit={handleSubmit} className="flex gap-3">
+    <footer className="shrink-0 border-t border-border/60 bg-background/95 px-4 py-4 backdrop-blur-sm">
+      <form
+        onSubmit={handleSubmit}
+        className={cn(
+          'flex gap-3 rounded-2xl border border-border/60 bg-muted/20 p-2 transition-shadow focus-within:border-ring/50 focus-within:ring-2 focus-within:ring-ring/20 dark:bg-muted/15',
+          disabled && 'opacity-60',
+        )}
+      >
         <Textarea
           value={content}
           onChange={(event) => setContent(event.target.value)}
-          placeholder="Type a message..."
-          className="min-h-[52px] resize-none"
+          placeholder="Ask about your documents..."
+          className="min-h-[52px] flex-1 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
           disabled={disabled || isSending}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
@@ -54,6 +64,7 @@ export function MessageInput({
         <Button
           type="submit"
           size="icon-lg"
+          className="shrink-0 self-end"
           disabled={disabled || isSending || !content.trim()}
         >
           {isSending ? (
@@ -63,10 +74,10 @@ export function MessageInput({
           )}
         </Button>
       </form>
-      {(error || externalError) && (
-        <p className="mt-2 text-sm text-destructive">
-          {error ?? externalError}
-        </p>
+      {displayError && (
+        <div className="mt-3">
+          <AlertBanner message={displayError} />
+        </div>
       )}
     </footer>
   );

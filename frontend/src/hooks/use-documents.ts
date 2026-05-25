@@ -28,6 +28,7 @@ export function useDocuments() {
     documents: documentsQuery.data ?? [],
     isLoading: documentsQuery.isLoading,
     isError: documentsQuery.isError,
+    refetch: documentsQuery.refetch,
     upload: uploadMutation,
   };
 }

@@ -1,8 +1,11 @@
 'use client';
 
-import { Skeleton } from '@/components/ui/skeleton';
+import { MessageListSkeleton } from '@/components/chat/message-skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { TypingIndicator } from '@/components/ui/typing-indicator';
 import { cn } from '@/lib/utils';
 import type { Message, RagCitation, StreamingAssistantMessage } from '@/types/chat';
+import { MessageSquare } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 function formatTime(value: string) {
@@ -18,7 +21,7 @@ function CitationsList({ citations }: { citations: RagCitation[] }) {
   }
 
   return (
-    <ul className="mt-2 space-y-1 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+    <ul className="mt-2.5 space-y-1 border-t border-border/50 pt-2.5 text-[11px] leading-relaxed text-muted-foreground">
       {citations.map((citation) => (
         <li key={citation.chunkId}>
           {citation.documentFilename} · chunk {citation.chunkIndex} ·{' '}
@@ -33,29 +36,33 @@ function MessageBubble({
   message,
   citations,
   isTyping,
+  animate,
 }: {
   message: Pick<Message, 'role' | 'content' | 'createdAt'> & { id?: string };
   citations?: RagCitation[];
   isTyping?: boolean;
+  animate?: boolean;
 }) {
   const isUser = message.role === 'USER';
 
   return (
-    <article className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+    <article
+      className={cn(
+        'flex',
+        isUser ? 'justify-end' : 'justify-start',
+        animate && 'animate-fade-in-up',
+      )}
+    >
       <div
         className={cn(
-          'max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
+          'max-w-[min(80%,42rem)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm transition-shadow',
           isUser
-            ? 'bg-primary text-primary-foreground'
-            : 'border border-border/60 bg-background text-foreground',
+            ? 'bg-primary text-primary-foreground shadow-primary/15'
+            : 'border border-border/50 bg-card text-foreground dark:border-border/60 dark:bg-card/80',
         )}
       >
         {isTyping && !message.content ? (
-          <div className="flex items-center gap-1 py-1">
-            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0ms]" />
-            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
-            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
-          </div>
+          <TypingIndicator />
         ) : (
           <p className="whitespace-pre-wrap">{message.content}</p>
         )}
@@ -63,8 +70,8 @@ function MessageBubble({
         {!isTyping && (
           <p
             className={cn(
-              'mt-1 text-[10px]',
-              isUser ? 'text-primary-foreground/70' : 'text-muted-foreground',
+              'mt-1.5 text-[10px] tabular-nums',
+              isUser ? 'text-primary-foreground/65' : 'text-muted-foreground',
             )}
           >
             {formatTime(message.createdAt)}
@@ -88,26 +95,15 @@ export function MessageList({
   streamingMessage?: StreamingAssistantMessage | null;
   isStreaming?: boolean;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, pendingQuestion, streamingMessage, isStreaming]);
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages, pendingQuestion, streamingMessage?.content, isStreaming]);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-1 flex-col gap-3 p-6">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton
-            key={index}
-            className={cn(
-              'h-16 rounded-2xl',
-              index % 2 === 0 ? 'w-2/3' : 'ml-auto w-1/2',
-            )}
-          />
-        ))}
-      </div>
-    );
+    return <MessageListSkeleton />;
   }
 
   const showEmpty =
@@ -115,18 +111,28 @@ export function MessageList({
 
   if (showEmpty) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <p className="text-sm text-muted-foreground">
-          Ask a question about your documents
-        </p>
+      <div className="flex flex-1 items-center justify-center p-8 animate-fade-in">
+        <EmptyState
+          icon={MessageSquare}
+          title="Start the conversation"
+          description="Ask a question about your uploaded documents. Answers include citations from your PDFs."
+          className="py-8"
+        />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
-      {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
+    <div
+      ref={scrollRef}
+      className="scrollbar-thin flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-6"
+    >
+      {messages.map((message, index) => (
+        <MessageBubble
+          key={message.id}
+          message={message}
+          animate={index >= messages.length - 2}
+        />
       ))}
       {pendingQuestion && (
         <MessageBubble
@@ -135,6 +141,7 @@ export function MessageList({
             content: pendingQuestion,
             createdAt: new Date().toISOString(),
           }}
+          animate
         />
       )}
       {(isStreaming || streamingMessage) && (
@@ -146,9 +153,10 @@ export function MessageList({
           }}
           citations={streamingMessage?.citations}
           isTyping={isStreaming && !streamingMessage?.content}
+          animate
         />
       )}
-      <div ref={bottomRef} />
+      <div ref={bottomRef} className="h-px shrink-0" aria-hidden />
     </div>
   );
 }

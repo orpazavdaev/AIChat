@@ -105,8 +105,12 @@ export function useChatHistory(conversationId: string | undefined) {
     ...conversationsState,
     activeConversation: conversationState.data ?? null,
     isConversationLoading: conversationState.isLoading,
+    isConversationError: conversationState.isError,
+    refetchConversation: conversationState.refetch,
     messages: messagesState.messages,
     isMessagesLoading: messagesState.isLoading,
+    isMessagesError: messagesState.isError,
+    refetchMessages: messagesState.refetch,
     appendMessage: messagesState.appendMessage,
     invalidateMessages: messagesState.invalidate,
   };

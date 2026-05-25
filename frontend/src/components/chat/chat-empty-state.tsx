@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { MessageSquare, Plus } from 'lucide-react';
 
 export function ChatEmptyState({
@@ -11,21 +12,18 @@ export function ChatEmptyState({
   isCreating: boolean;
 }) {
   return (
-    <div className="flex flex-1 items-center justify-center p-8 text-center">
-      <div className="max-w-sm space-y-4">
-        <MessageSquare className="mx-auto size-10 text-muted-foreground" />
-        <div className="space-y-2">
-          <p className="font-medium">Select or start a conversation</p>
-          <p className="text-sm text-muted-foreground">
-            Your messages are saved per conversation. Switch anytime from the
-            sidebar.
-          </p>
-        </div>
-        <Button onClick={onCreate} disabled={isCreating}>
-          <Plus className="size-4" />
-          New conversation
-        </Button>
-      </div>
+    <div className="flex flex-1 items-center justify-center p-8 animate-fade-in">
+      <EmptyState
+        icon={MessageSquare}
+        title="Select or start a conversation"
+        description="Your messages are saved per conversation. Switch anytime from the sidebar."
+        action={
+          <Button onClick={onCreate} disabled={isCreating}>
+            <Plus className="size-4" />
+            New conversation
+          </Button>
+        }
+      />
     </div>
   );
 }

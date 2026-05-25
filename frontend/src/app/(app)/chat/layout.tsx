@@ -17,7 +17,8 @@ export default function ChatLayout({
   const pathname = usePathname();
   const router = useRouter();
   const activeConversationId = getActiveConversationId(pathname);
-  const { conversations, isLoading, createConversation } = useConversations();
+  const { conversations, isLoading, isError, refetch, createConversation } =
+    useConversations();
 
   const handleCreateConversation = async () => {
     const conversation = await createConversation.mutateAsync({});
@@ -37,10 +38,12 @@ export default function ChatLayout({
           conversations={conversations}
           activeConversationId={activeConversationId}
           isLoading={isLoading}
+          isError={isError}
+          onRetry={() => void refetch()}
           onCreate={handleCreateConversation}
           isCreating={createConversation.isPending}
         />
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background transition-colors duration-200">
           {children}
         </div>
       </div>

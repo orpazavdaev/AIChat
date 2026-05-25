@@ -34,7 +34,7 @@ export default function DashboardPage() {
         description="Your AI document workspace is ready."
       />
       <section className="space-y-8 p-8">
-        <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-primary/5 via-background to-violet-500/5">
+        <Card className="overflow-hidden border-border/60 bg-gradient-to-br from-primary/5 via-background to-violet-500/5 transition-shadow duration-200 hover:shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg">Welcome to AIChat</CardTitle>
             <CardDescription>
@@ -51,7 +51,7 @@ export default function DashboardPage() {
             return (
               <Card
                 key={item.title}
-                className="border-border/60 transition-shadow hover:shadow-md"
+                className="border-border/60 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
               >
                 <CardHeader className="space-y-4">
                   <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">

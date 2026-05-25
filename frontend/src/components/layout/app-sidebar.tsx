@@ -1,6 +1,7 @@
 'use client';
 
 import { Logo } from '@/components/brand/logo';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -32,8 +33,9 @@ export function AppSidebar() {
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-border/60 bg-sidebar">
-      <header className="flex h-16 items-center px-5">
+      <header className="flex h-16 items-center justify-between gap-2 px-5">
         <Logo />
+        <ThemeToggle />
       </header>
       <Separator className="opacity-60" />
       <nav className="flex flex-1 flex-col gap-1 p-3">
@@ -47,7 +49,7 @@ export function AppSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors',
+                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200',
                 isActive
                   ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground shadow-sm'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent/70',

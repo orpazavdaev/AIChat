@@ -3,10 +3,11 @@
 import { DocumentsList } from '@/components/documents/documents-list';
 import { PdfUpload } from '@/components/documents/pdf-upload';
 import { AppHeader } from '@/components/layout/app-header';
+import { AlertBanner } from '@/components/ui/alert-banner';
 import { useDocuments } from '@/hooks/use-documents';
 
 export function DocumentsPageContent() {
-  const { documents, isLoading } = useDocuments();
+  const { documents, isLoading, isError, refetch } = useDocuments();
 
   return (
     <>
@@ -19,11 +20,20 @@ export function DocumentsPageContent() {
         <section className="space-y-4">
           <header>
             <h2 className="text-lg font-semibold tracking-tight">Your files</h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               All PDFs uploaded to your account
             </p>
           </header>
-          <DocumentsList documents={documents} isLoading={isLoading} />
+          {isError && (
+            <AlertBanner
+              message="Could not load your documents."
+              onRetry={() => void refetch()}
+            />
+          )}
+          <DocumentsList
+            documents={documents}
+            isLoading={isLoading && !isError}
+          />
         </section>
       </section>
     </>
