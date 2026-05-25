@@ -5,10 +5,14 @@ import {
 import { ChatRepository } from './chat.repository';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { RagChatService } from './rag/rag-chat.service';
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly chatRepository: ChatRepository) {}
+  constructor(
+    private readonly chatRepository: ChatRepository,
+    private readonly ragChatService: RagChatService,
+  ) {}
 
   async createConversation(userId: string, dto: CreateConversationDto) {
     if (dto.documentId) {
@@ -66,6 +70,10 @@ export class ChatService {
     );
 
     return this.toMessageResponse(message);
+  }
+
+  ask(userId: string, conversationId: string, question: string) {
+    return this.ragChatService.ask(userId, conversationId, question);
   }
 
   private async ensureConversationAccess(conversationId: string, userId: string) {

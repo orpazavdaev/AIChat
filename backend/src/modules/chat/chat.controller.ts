@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../auth/types/auth.types';
 import { ChatService } from './chat.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
+import { AskQuestionDto } from './dto/ask-question.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 
 @Controller('chat')
@@ -39,5 +40,14 @@ export class ChatController {
     @Body() dto: CreateMessageDto,
   ) {
     return this.chatService.addMessage(user.userId, conversationId, dto);
+  }
+
+  @Post('conversations/:id/ask')
+  ask(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') conversationId: string,
+    @Body() dto: AskQuestionDto,
+  ) {
+    return this.chatService.ask(user.userId, conversationId, dto.question);
   }
 }

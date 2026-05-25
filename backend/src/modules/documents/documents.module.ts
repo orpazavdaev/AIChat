@@ -19,6 +19,6 @@ import { FileStorageService } from './storage/file-storage.service';
     EmbeddingService,
     VectorSearchService,
   ],
-  exports: [DocumentsService, VectorSearchService],
+  exports: [DocumentsService, DocumentsRepository, VectorSearchService],
 })
 export class DocumentsModule {}

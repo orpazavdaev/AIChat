@@ -43,6 +43,10 @@ export class ChatRepository {
   }
 
   async createMessage(conversationId: string, content: string) {
+    return this.createUserMessage(conversationId, content);
+  }
+
+  async createUserMessage(conversationId: string, content: string) {
     const message = await this.prisma.message.create({
       data: {
         content,
@@ -51,11 +55,27 @@ export class ChatRepository {
       },
     });
 
+    await this.touchConversation(conversationId);
+    return message;
+  }
+
+  async createAssistantMessage(conversationId: string, content: string) {
+    const message = await this.prisma.message.create({
+      data: {
+        content,
+        role: MessageRole.ASSISTANT,
+        conversation: { connect: { id: conversationId } },
+      },
+    });
+
+    await this.touchConversation(conversationId);
+    return message;
+  }
+
+  private async touchConversation(conversationId: string) {
     await this.prisma.conversation.update({
       where: { id: conversationId },
       data: { updatedAt: new Date() },
     });
-
-    return message;
   }
 }

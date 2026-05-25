@@ -39,6 +39,17 @@ export class DocumentsRepository {
     });
   }
 
+  findMetadataByIdsForUser(userId: string, ids: string[]) {
+    if (ids.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    return this.prisma.document.findMany({
+      where: { userId, id: { in: ids } },
+      select: { id: true, filename: true },
+    });
+  }
+
   replaceChunks(
     documentId: string,
     chunks: { index: number; content: string }[],
