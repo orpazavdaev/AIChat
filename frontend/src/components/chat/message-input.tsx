@@ -4,6 +4,7 @@ import { AlertBanner } from '@/components/ui/alert-banner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { bidiTextProps } from '@/lib/text-direction';
 import { Loader2, Send } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 
@@ -52,7 +53,10 @@ export function MessageInput({
           value={content}
           onChange={(event) => setContent(event.target.value)}
           placeholder="Ask about your documents..."
-          className="min-h-[52px] flex-1 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+          dir="auto"
+          className={cn(
+            'min-h-[52px] flex-1 resize-none border-0 bg-transparent text-start shadow-none [unicode-bidi:plaintext] focus-visible:ring-0',
+          )}
           disabled={disabled || isSending}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {

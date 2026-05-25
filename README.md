@@ -1,6 +1,6 @@
-# AIChat
+# Docwise
 
-**AIChat** is a full-stack RAG (Retrieval-Augmented Generation) SaaS application. Users upload PDFs, ask questions in natural language, and receive grounded answers with **clickable source citations** — document name, page number, and excerpt.
+**Docwise** is a full-stack RAG (Retrieval-Augmented Generation) SaaS application. Users upload PDFs, ask questions in natural language, and receive grounded answers with **clickable source citations** — document name, page number, and excerpt.
 
 Built as a production-style monorepo: **NestJS** API + **Next.js** frontend, **PostgreSQL + pgvector** for semantic search, and **Google Gemini** for embeddings and chat.
 
@@ -507,7 +507,7 @@ Auth: `Authorization: Bearer <accessToken>` (except register/login)
 ## Project Structure
 
 ```
-AIChat/
+Docwise/
 ├── backend/
 │   ├── prisma/schema.prisma      # Models + pgvector extension
 │   ├── src/

@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { bidiTextProps } from '@/lib/text-direction';
 import type { RagCitation } from '@/types/chat';
 
 const SOURCE_REF_PATTERN = /(\[source-\d+\])/gi;
@@ -14,14 +15,16 @@ export function MessageContent({
   citations?: RagCitation[];
   onSourceClick?: (sourceRef: string) => void;
 }) {
+  const bidi = bidiTextProps();
+
   if (!citations?.length) {
-    return <p className="whitespace-pre-wrap">{content}</p>;
+    return <p {...bidi}>{content}</p>;
   }
 
   const parts = content.split(SOURCE_REF_PATTERN);
 
   return (
-    <p className="whitespace-pre-wrap">
+    <p {...bidi}>
       {parts.map((part, index) => {
         const match = part.match(/^\[source-(\d+)\]$/i);
 
@@ -36,6 +39,7 @@ export function MessageContent({
           <button
             key={index}
             type="button"
+            dir="ltr"
             onClick={() => onSourceClick?.(sourceRef)}
             className={cn(
               'mx-0.5 inline-flex items-center rounded-md bg-primary/10 px-1 py-0.5 font-mono text-[0.85em] font-semibold text-primary underline-offset-2 transition-colors hover:bg-primary/20 hover:underline',

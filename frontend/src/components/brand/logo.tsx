@@ -1,13 +1,20 @@
-import { Sparkles } from 'lucide-react';
+import { APP_NAME } from '@/lib/brand';
+import Image from 'next/image';
 import Link from 'next/link';
+import icon from '@/app/icon.png';
 
 export function Logo({ href = '/chat' }: { href?: string }) {
   return (
     <Link href={href} className="flex items-center gap-2.5">
-      <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-        <Sparkles className="size-4" />
-      </span>
-      <span className="text-base font-semibold tracking-tight">AIChat</span>
+      <Image
+        src={icon}
+        alt=""
+        width={32}
+        height={32}
+        className="size-8 rounded-lg shadow-sm"
+        priority
+      />
+      <span className="text-base font-semibold tracking-tight">{APP_NAME}</span>
     </Link>
   );
 }

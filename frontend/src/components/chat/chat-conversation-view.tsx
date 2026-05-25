@@ -4,6 +4,7 @@ import { MessageInput } from '@/components/chat/message-input';
 import { MessageList } from '@/components/chat/message-list';
 import { AlertBanner } from '@/components/ui/alert-banner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { bidiTextProps } from '@/lib/text-direction';
 import { useChatHistory } from '@/hooks/use-chat';
 import { useRagStream } from '@/hooks/use-rag-stream';
 
@@ -48,7 +49,7 @@ export function ChatConversationView({
           </div>
         ) : (
           <div className="animate-fade-in">
-            <h2 className="truncate text-base font-semibold tracking-tight">
+            <h2 {...bidiTextProps('truncate text-base font-semibold tracking-tight')}>
               {activeConversation?.title ?? 'Conversation'}
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">

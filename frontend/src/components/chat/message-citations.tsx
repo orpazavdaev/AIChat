@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { bidiTextProps } from '@/lib/text-direction';
 import type { RagCitation } from '@/types/chat';
 import { FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -51,12 +52,15 @@ export function MessageCitations({
                   <button
                     type="button"
                     onClick={() => handleSelect(citation)}
-                    className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted/60"
+                    className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-muted/60"
                   >
-                    <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-primary">
+                    <span
+                      dir="ltr"
+                      className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-primary"
+                    >
                       [{citation.sourceIndex}]
                     </span>
-                    <span className="min-w-0 leading-relaxed">
+                    <span {...bidiTextProps('min-w-0 leading-relaxed')}>
                       <span className="font-medium text-foreground">
                         {citation.documentFilename}
                       </span>
@@ -76,7 +80,7 @@ export function MessageCitations({
                   </Link>
                 </div>
                 {isActive && (
-                  <p className="px-2 pb-2 text-[11px] leading-relaxed text-muted-foreground">
+                  <p {...bidiTextProps('px-2 pb-2 text-[11px] leading-relaxed text-muted-foreground')}>
                     {citation.excerpt}
                   </p>
                 )}

@@ -6,6 +6,7 @@ import { AlertBanner } from '@/components/ui/alert-banner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { bidiTextProps } from '@/lib/text-direction';
 import type { Conversation } from '@/types/chat';
 import { History, Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -104,14 +105,14 @@ export function ConversationList({
               )}
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="truncate text-sm font-medium leading-snug">
+                <p {...bidiTextProps('truncate text-sm font-medium leading-snug')}>
                   {conversation.title ?? 'Untitled'}
                 </p>
                 <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
                   {formatRelativeTime(conversation.updatedAt)}
                 </span>
               </div>
-              <p className="mt-1 truncate text-xs leading-relaxed text-muted-foreground">
+              <p {...bidiTextProps('mt-1 truncate text-xs leading-relaxed text-muted-foreground')}>
                 {formatPreview(conversation.lastMessage)}
               </p>
               <p className="mt-1 text-[10px] text-muted-foreground">
