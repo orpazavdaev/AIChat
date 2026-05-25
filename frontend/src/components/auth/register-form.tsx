@@ -32,7 +32,11 @@ export function RegisterForm() {
         <CardDescription>Start chatting with your documents</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5"
+          suppressHydrationWarning
+        >
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">

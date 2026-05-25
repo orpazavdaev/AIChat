@@ -15,6 +15,7 @@ export class ChatRepository {
       where: { userId },
       orderBy: { updatedAt: 'desc' },
       include: {
+        _count: { select: { messages: true } },
         messages: {
           orderBy: { createdAt: 'desc' },
           take: 1,
@@ -70,6 +71,18 @@ export class ChatRepository {
 
     await this.touchConversation(conversationId);
     return message;
+  }
+
+  updateTitleFromFirstQuestion(conversationId: string, question: string) {
+    const title = question.trim().slice(0, 80) || 'New conversation';
+
+    return this.prisma.conversation.updateMany({
+      where: {
+        id: conversationId,
+        OR: [{ title: 'New conversation' }, { title: null }],
+      },
+      data: { title },
+    });
   }
 
   private async touchConversation(conversationId: string) {

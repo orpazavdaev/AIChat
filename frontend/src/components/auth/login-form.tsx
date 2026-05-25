@@ -32,7 +32,11 @@ export function LoginForm() {
         <CardDescription>Sign in to continue to your workspace</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5"
+          suppressHydrationWarning
+        >
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">

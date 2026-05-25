@@ -11,6 +11,10 @@ export const chatApi = {
     return apiClient<Conversation[]>('/chat/conversations');
   },
 
+  getConversation(conversationId: string) {
+    return apiClient<Conversation>(`/chat/conversations/${conversationId}`);
+  },
+
   createConversation(data: CreateConversationRequest = {}) {
     return apiClient<Conversation>('/chat/conversations', {
       method: 'POST',

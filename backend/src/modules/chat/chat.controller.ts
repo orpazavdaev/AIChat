@@ -34,6 +34,14 @@ export class ChatController {
     return this.chatService.findConversations(user.userId);
   }
 
+  @Get('conversations/:id')
+  findConversation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') conversationId: string,
+  ) {
+    return this.chatService.findConversation(user.userId, conversationId);
+  }
+
   @Get('conversations/:id/messages')
   findMessages(
     @CurrentUser() user: AuthenticatedUser,

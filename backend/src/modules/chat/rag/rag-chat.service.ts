@@ -129,6 +129,11 @@ export class RagChatService {
       question,
     );
 
+    await this.chatRepository.updateTitleFromFirstQuestion(
+      conversationId,
+      question,
+    );
+
     if (chunks.length === 0) {
       return {
         userMessageId: userMessage.id,

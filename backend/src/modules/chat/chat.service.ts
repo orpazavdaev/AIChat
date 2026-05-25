@@ -34,7 +34,11 @@ export class ChatService {
         : {}),
     });
 
-    return this.toConversationResponse(conversation, null);
+    return this.toConversationResponse({
+      ...conversation,
+      _count: { messages: 0 },
+      messages: [],
+    });
   }
 
   async findConversations(userId: string) {
@@ -42,10 +46,25 @@ export class ChatService {
       await this.chatRepository.findConversationsByUser(userId);
 
     return conversations.map((conversation) =>
-      this.toConversationResponse(
-        conversation,
-        conversation.messages[0]?.content ?? null,
-      ),
+      this.toConversationResponse(conversation),
+    );
+  }
+
+  async findConversation(userId: string, conversationId: string) {
+    const conversation = await this.ensureConversationAccess(
+      conversationId,
+      userId,
+    );
+    const messages =
+      await this.chatRepository.findMessagesByConversation(conversationId);
+    const lastMessage = messages.at(-1);
+
+    return this.toConversationResponse(
+      {
+        ...conversation,
+        _count: { messages: messages.length },
+        messages: lastMessage ? [lastMessage] : [],
+      },
     );
   }
 
@@ -104,24 +123,37 @@ export class ChatService {
     return conversation;
   }
 
-  private toConversationResponse(
-    conversation: {
-      id: string;
-      title: string | null;
-      documentId: string | null;
-      createdAt: Date;
-      updatedAt: Date;
-    },
-    lastMessage: string | null,
-  ) {
+  private toConversationResponse(conversation: {
+    id: string;
+    title: string | null;
+    documentId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    _count: { messages: number };
+    messages: { role: string; content: string }[];
+  }) {
+    const latest = conversation.messages[0];
+
     return {
       id: conversation.id,
       title: conversation.title,
       documentId: conversation.documentId,
-      lastMessage,
+      messageCount: conversation._count.messages,
+      lastMessage: latest ? this.formatLastMessage(latest) : null,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
     };
+  }
+
+  private formatLastMessage(message: { role: string; content: string }) {
+    const prefix = message.role === 'USER' ? 'You: ' : 'AI: ';
+    const text = message.content.trim();
+
+    if (text.length <= 80) {
+      return `${prefix}${text}`;
+    }
+
+    return `${prefix}${text.slice(0, 80)}...`;
   }
 
   private toMessageResponse(message: {

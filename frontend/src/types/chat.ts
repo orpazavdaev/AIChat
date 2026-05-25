@@ -4,6 +4,7 @@ export interface Conversation {
   id: string;
   title: string | null;
   documentId: string | null;
+  messageCount: number;
   lastMessage: string | null;
   createdAt: string;
   updatedAt: string;

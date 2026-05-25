@@ -1,4 +1,4 @@
-import { ChatPageContent } from '@/components/chat/chat-page-content';
+import { ChatConversationView } from '@/components/chat/chat-conversation-view';
 
 export default async function ChatConversationPage({
   params,
@@ -6,5 +6,5 @@ export default async function ChatConversationPage({
   params: Promise<{ conversationId: string }>;
 }) {
   const { conversationId } = await params;
-  return <ChatPageContent conversationId={conversationId} />;
+  return <ChatConversationView conversationId={conversationId} />;
 }

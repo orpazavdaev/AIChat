@@ -1,12 +1,12 @@
 'use client';
 
 import { streamRagAsk } from '@/lib/api/chat-stream';
+import { useConversationMessages } from '@/hooks/use-chat';
 import type { RagCitation, StreamingAssistantMessage } from '@/types/chat';
-import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef, useState } from 'react';
 
 export function useRagStream(conversationId: string | null) {
-  const queryClient = useQueryClient();
+  const { appendMessage, invalidate } = useConversationMessages(conversationId);
   const abortRef = useRef<AbortController | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessage, setStreamingMessage] =
@@ -33,6 +33,18 @@ export function useRagStream(conversationId: string | null) {
         await streamRagAsk(conversationId, question, {
           signal: controller.signal,
           onEvent: (event) => {
+            if (event.type === 'user_message') {
+              appendMessage({
+                id: event.userMessageId,
+                conversationId,
+                role: 'USER',
+                content: question,
+                createdAt: new Date().toISOString(),
+              });
+              setPendingQuestion(null);
+              return;
+            }
+
             if (event.type === 'citations') {
               setStreamingMessage((current) =>
                 current
@@ -57,15 +69,13 @@ export function useRagStream(conversationId: string | null) {
           },
         });
 
-        await queryClient.invalidateQueries({
-          queryKey: ['messages', conversationId],
-        });
-        await queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        await invalidate();
       } catch (err) {
         if (controller.signal.aborted) {
           return;
         }
         setError(err instanceof Error ? err.message : 'Failed to get response');
+        await invalidate();
       } finally {
         setIsStreaming(false);
         setPendingQuestion(null);
@@ -73,7 +83,7 @@ export function useRagStream(conversationId: string | null) {
         abortRef.current = null;
       }
     },
-    [conversationId, queryClient],
+    [conversationId, appendMessage, invalidate],
   );
 
   const cancel = useCallback(() => {
