@@ -5,8 +5,10 @@ import {
   TaskType,
 } from '@google/generative-ai';
 
-const DEFAULT_CHAT_MODEL = 'gemini-1.5-flash';
-const DEFAULT_EMBEDDING_MODEL = 'text-embedding-004';
+const DEFAULT_CHAT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_EMBEDDING_MODEL = 'gemini-embedding-001';
+const EMBEDDING_DIMENSIONS = 1536;
+const EMBED_BATCH_SIZE = 100;
 
 @Injectable()
 export class AiService {
@@ -20,14 +22,25 @@ export class AiService {
     }
 
     const model = this.getEmbeddingModel();
-    const { embeddings } = await model.batchEmbedContents({
-      requests: texts.map((text) => ({
-        content: { role: 'user', parts: [{ text }] },
-        taskType: TaskType.RETRIEVAL_DOCUMENT,
-      })),
-    });
+    const results: number[][] = [];
 
-    return embeddings.map((embedding) => embedding.values);
+    for (let index = 0; index < texts.length; index += EMBED_BATCH_SIZE) {
+      const batch = texts.slice(index, index + EMBED_BATCH_SIZE);
+      const { embeddings } = await model.batchEmbedContents({
+        requests: batch.map((text) => ({
+          content: { role: 'user', parts: [{ text }] },
+          taskType: TaskType.RETRIEVAL_DOCUMENT,
+        })),
+      });
+
+      results.push(
+        ...embeddings.map((embedding) =>
+          this.toStorageEmbedding(embedding.values),
+        ),
+      );
+    }
+
+    return results;
   }
 
   async embedQuery(text: string): Promise<number[]> {
@@ -37,7 +50,20 @@ export class AiService {
       taskType: TaskType.RETRIEVAL_QUERY,
     });
 
-    return result.embedding.values;
+    return this.toStorageEmbedding(result.embedding.values);
+  }
+
+  private toStorageEmbedding(values: number[]): number[] {
+    const truncated = values.slice(0, EMBEDDING_DIMENSIONS);
+    const magnitude = Math.sqrt(
+      truncated.reduce((sum, value) => sum + value * value, 0),
+    );
+
+    if (magnitude === 0) {
+      return truncated;
+    }
+
+    return truncated.map((value) => value / magnitude);
   }
 
   async generateText(system: string, user: string): Promise<string> {

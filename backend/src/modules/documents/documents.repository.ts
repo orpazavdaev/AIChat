@@ -81,6 +81,10 @@ export class DocumentsRepository {
   async setChunkEmbeddings(
     updates: { id: string; embedding: number[] }[],
   ): Promise<void> {
+    if (updates.length === 0) {
+      return;
+    }
+
     await this.prisma.$transaction(
       updates.map((update) =>
         this.prisma.$executeRawUnsafe(

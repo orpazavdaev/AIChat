@@ -44,6 +44,10 @@ export class DocumentsService {
       const content = await this.pdfParserService.extractFromBuffer(source);
       const textChunks = chunkText(content);
 
+      if (textChunks.length === 0) {
+        throw new Error('No extractable text in PDF');
+      }
+
       await this.documentsRepository.replaceChunks(documentId, textChunks);
 
       const storedChunks =
