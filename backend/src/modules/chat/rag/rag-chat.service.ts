@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
-import OpenAI from 'openai';
+import { AiService } from '../../../common/ai/ai.service';
 import { DocumentsRepository } from '../../documents/documents.repository';
 import { VectorSearchService } from '../../documents/retrieval/vector-search.service';
 import type { SimilarChunk } from '../../documents/retrieval/similar-chunk.types';
@@ -11,8 +10,6 @@ import type { RagCitation, RagSseEvent } from './rag-chat.types';
 import { initSse, writeSseEvent } from './sse-writer';
 
 export type { RagCitation } from './rag-chat.types';
-
-const CHAT_MODEL = 'gpt-4o-mini';
 
 export type RagChatResult = {
   answer: string;
@@ -30,10 +27,8 @@ type PreparedAsk = {
 
 @Injectable()
 export class RagChatService {
-  private client: OpenAI | null = null;
-
   constructor(
-    private readonly configService: ConfigService,
+    private readonly aiService: AiService,
     private readonly chatRepository: ChatRepository,
     private readonly vectorSearchService: VectorSearchService,
     private readonly documentsRepository: DocumentsRepository,
@@ -47,18 +42,19 @@ export class RagChatService {
     const prepared = await this.prepare(userId, conversationId, question);
     const answer = prepared.noContext
       ? buildNoContextAnswer()
-      : await this.complete(
+      : await this.aiService.generateText(
           prepared.prompt!.system,
           prepared.prompt!.user,
         );
 
+    const finalAnswer = answer.trim() || buildNoContextAnswer();
     const assistantMessage = await this.chatRepository.createAssistantMessage(
       conversationId,
-      answer,
+      finalAnswer,
     );
 
     return {
-      answer,
+      answer: finalAnswer,
       citations: prepared.citations,
       userMessageId: prepared.userMessageId,
       assistantMessageId: assistantMessage.id,
@@ -173,7 +169,7 @@ export class RagChatService {
 
     let answer = '';
 
-    for await (const token of this.streamComplete(
+    for await (const token of this.aiService.generateTextStream(
       prepared.prompt!.system,
       prepared.prompt!.user,
     )) {
@@ -218,60 +214,5 @@ export class RagChatService {
       similarity: chunk.similarity,
       excerpt: chunk.content,
     }));
-  }
-
-  private async complete(system: string, user: string): Promise<string> {
-    let answer = '';
-
-    for await (const token of this.streamComplete(system, user)) {
-      answer += token;
-    }
-
-    if (!answer.trim()) {
-      return buildNoContextAnswer();
-    }
-
-    return answer;
-  }
-
-  private async *streamComplete(
-    system: string,
-    user: string,
-  ): AsyncGenerator<string> {
-    const stream = await this.getClient().chat.completions.create({
-      model: this.getModel(),
-      temperature: 0,
-      stream: true,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-    });
-
-    for await (const chunk of stream) {
-      const delta = chunk.choices[0]?.delta?.content;
-      if (delta) {
-        yield delta;
-      }
-    }
-  }
-
-  private getClient(): OpenAI {
-    if (this.client) {
-      return this.client;
-    }
-
-    const apiKey = this.configService.get<string>('openai.apiKey');
-
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
-    }
-
-    this.client = new OpenAI({ apiKey });
-    return this.client;
-  }
-
-  private getModel(): string {
-    return this.configService.get<string>('openai.chatModel') ?? CHAT_MODEL;
   }
 }

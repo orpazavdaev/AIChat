@@ -12,9 +12,10 @@ export default () => ({
     uploadDir: process.env.UPLOAD_DIR ?? 'uploads',
     maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB ?? '10', 10),
   },
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY,
-    embeddingModel: process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-3-small',
-    chatModel: process.env.OPENAI_CHAT_MODEL ?? 'gpt-4o-mini',
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY,
+    embeddingModel:
+      process.env.GEMINI_EMBEDDING_MODEL ?? 'text-embedding-004',
+    chatModel: process.env.GEMINI_CHAT_MODEL ?? 'gemini-1.5-flash',
   },
 });

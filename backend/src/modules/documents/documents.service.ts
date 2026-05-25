@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DocumentStatus } from '@prisma/client';
+import { AiService } from '../../common/ai/ai.service';
 import { chunkText } from '../../common/utils';
 import { DocumentsRepository } from './documents.repository';
-import { EmbeddingService } from './embeddings/embedding.service';
 import { PdfParserService } from './extraction/pdf-parser.service';
 import { VectorSearchService } from './retrieval/vector-search.service';
 import { FileStorageService } from './storage/file-storage.service';
@@ -13,7 +13,7 @@ export class DocumentsService {
     private readonly documentsRepository: DocumentsRepository,
     private readonly fileStorageService: FileStorageService,
     private readonly pdfParserService: PdfParserService,
-    private readonly embeddingService: EmbeddingService,
+    private readonly aiService: AiService,
     private readonly vectorSearchService: VectorSearchService,
   ) {}
 
@@ -48,7 +48,7 @@ export class DocumentsService {
 
       const storedChunks =
         await this.documentsRepository.findChunksByDocumentId(documentId);
-      const embeddings = await this.embeddingService.embedTexts(
+      const embeddings = await this.aiService.embedTexts(
         storedChunks.map((chunk) => chunk.content),
       );
 

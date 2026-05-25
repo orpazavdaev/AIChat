@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { AiService } from '../../../common/ai/ai.service';
 import { DocumentsRepository } from '../documents.repository';
-import { EmbeddingService } from '../embeddings/embedding.service';
 import type { SimilarChunk } from './similar-chunk.types';
 
 const TOP_K = 5;
@@ -10,7 +10,7 @@ export type { SimilarChunk } from './similar-chunk.types';
 @Injectable()
 export class VectorSearchService {
   constructor(
-    private readonly embeddingService: EmbeddingService,
+    private readonly aiService: AiService,
     private readonly documentsRepository: DocumentsRepository,
   ) {}
 
@@ -19,7 +19,7 @@ export class VectorSearchService {
     query: string,
     documentId?: string,
   ): Promise<SimilarChunk[]> {
-    const [queryEmbedding] = await this.embeddingService.embedTexts([query]);
+    const queryEmbedding = await this.aiService.embedQuery(query);
 
     return this.documentsRepository.searchSimilarChunks(
       userId,
