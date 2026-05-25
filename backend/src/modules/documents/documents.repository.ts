@@ -1,6 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { DocumentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/database/prisma.service';
+import type { SimilarChunk } from './retrieval/similar-chunk.types';
+
+type SimilarChunkRow = {
+  id: string;
+  documentId: string;
+  index: number;
+  content: string;
+  similarity: number;
+};
 
 @Injectable()
 export class DocumentsRepository {
@@ -70,5 +79,65 @@ export class DocumentsRepository {
         ),
       ),
     );
+  }
+
+  async searchSimilarChunks(
+    userId: string,
+    embedding: number[],
+    limit: number,
+    documentId?: string,
+  ): Promise<SimilarChunk[]> {
+    const vector = `[${embedding.join(',')}]`;
+    const rows = documentId
+      ? await this.prisma.$queryRawUnsafe<SimilarChunkRow[]>(
+          `
+          SELECT
+            c.id,
+            c."documentId",
+            c.index,
+            c.content,
+            1 - (c.embedding <=> $1::vector) AS similarity
+          FROM "DocumentChunk" c
+          INNER JOIN "Document" d ON d.id = c."documentId"
+          WHERE d."userId" = $2::uuid
+            AND c."documentId" = $3::uuid
+            AND c.embedding IS NOT NULL
+            AND d.status = 'READY'
+          ORDER BY c.embedding <=> $1::vector ASC
+          LIMIT $4
+          `,
+          vector,
+          userId,
+          documentId,
+          limit,
+        )
+      : await this.prisma.$queryRawUnsafe<SimilarChunkRow[]>(
+          `
+          SELECT
+            c.id,
+            c."documentId",
+            c.index,
+            c.content,
+            1 - (c.embedding <=> $1::vector) AS similarity
+          FROM "DocumentChunk" c
+          INNER JOIN "Document" d ON d.id = c."documentId"
+          WHERE d."userId" = $2::uuid
+            AND c.embedding IS NOT NULL
+            AND d.status = 'READY'
+          ORDER BY c.embedding <=> $1::vector ASC
+          LIMIT $3
+          `,
+          vector,
+          userId,
+          limit,
+        );
+
+    return rows.map((row) => ({
+      id: row.id,
+      documentId: row.documentId,
+      index: Number(row.index),
+      content: row.content,
+      similarity: Number(row.similarity),
+    }));
   }
 }

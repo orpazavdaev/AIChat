@@ -4,6 +4,7 @@ import { chunkText } from '../../common/utils';
 import { DocumentsRepository } from './documents.repository';
 import { EmbeddingService } from './embeddings/embedding.service';
 import { PdfParserService } from './extraction/pdf-parser.service';
+import { VectorSearchService } from './retrieval/vector-search.service';
 import { FileStorageService } from './storage/file-storage.service';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class DocumentsService {
     private readonly fileStorageService: FileStorageService,
     private readonly pdfParserService: PdfParserService,
     private readonly embeddingService: EmbeddingService,
+    private readonly vectorSearchService: VectorSearchService,
   ) {}
 
   async upload(userId: string, file: Express.Multer.File) {
@@ -31,6 +33,10 @@ export class DocumentsService {
   async findAllByUser(userId: string) {
     const documents = await this.documentsRepository.findAllByUser(userId);
     return documents.map((document) => this.toResponse(document));
+  }
+
+  search(userId: string, query: string, documentId?: string) {
+    return this.vectorSearchService.search(userId, query, documentId);
   }
 
   private async extractAndStore(documentId: string, source: Buffer) {

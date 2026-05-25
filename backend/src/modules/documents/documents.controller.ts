@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Post,
@@ -11,6 +12,7 @@ import { memoryStorage } from 'multer';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../auth/types/auth.types';
+import { SearchDocumentsDto } from './dto/search-documents.dto';
 import { DocumentsService } from './documents.service';
 
 const maxFileSizeMb = parseInt(process.env.MAX_FILE_SIZE_MB ?? '10', 10);
@@ -39,5 +41,17 @@ export class DocumentsController {
   @Get()
   findAll(@CurrentUser() user: AuthenticatedUser) {
     return this.documentsService.findAllByUser(user.userId);
+  }
+
+  @Post('search')
+  search(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: SearchDocumentsDto,
+  ) {
+    return this.documentsService.search(
+      user.userId,
+      body.query,
+      body.documentId,
+    );
   }
 }
