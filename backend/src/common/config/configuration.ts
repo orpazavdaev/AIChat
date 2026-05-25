@@ -12,4 +12,8 @@ export default () => ({
     uploadDir: process.env.UPLOAD_DIR ?? 'uploads',
     maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB ?? '10', 10),
   },
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY,
+    embeddingModel: process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-3-small',
+  },
 });

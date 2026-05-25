@@ -49,4 +49,26 @@ export class DocumentsRepository {
         : []),
     ]);
   }
+
+  findChunksByDocumentId(documentId: string) {
+    return this.prisma.documentChunk.findMany({
+      where: { documentId },
+      orderBy: { index: 'asc' },
+      select: { id: true, index: true, content: true },
+    });
+  }
+
+  async setChunkEmbeddings(
+    updates: { id: string; embedding: number[] }[],
+  ): Promise<void> {
+    await this.prisma.$transaction(
+      updates.map((update) =>
+        this.prisma.$executeRawUnsafe(
+          'UPDATE "DocumentChunk" SET embedding = $1::vector WHERE id = $2::uuid',
+          `[${update.embedding.join(',')}]`,
+          update.id,
+        ),
+      ),
+    );
+  }
 }

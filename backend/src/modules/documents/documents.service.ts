@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DocumentStatus } from '@prisma/client';
 import { chunkText } from '../../common/utils';
 import { DocumentsRepository } from './documents.repository';
+import { EmbeddingService } from './embeddings/embedding.service';
 import { PdfParserService } from './extraction/pdf-parser.service';
 import { FileStorageService } from './storage/file-storage.service';
 
@@ -11,6 +12,7 @@ export class DocumentsService {
     private readonly documentsRepository: DocumentsRepository,
     private readonly fileStorageService: FileStorageService,
     private readonly pdfParserService: PdfParserService,
+    private readonly embeddingService: EmbeddingService,
   ) {}
 
   async upload(userId: string, file: Express.Multer.File) {
@@ -34,16 +36,28 @@ export class DocumentsService {
   private async extractAndStore(documentId: string, source: Buffer) {
     try {
       const content = await this.pdfParserService.extractFromBuffer(source);
-      const document = await this.documentsRepository.updateExtraction(
+      const textChunks = chunkText(content);
+
+      await this.documentsRepository.replaceChunks(documentId, textChunks);
+
+      const storedChunks =
+        await this.documentsRepository.findChunksByDocumentId(documentId);
+      const embeddings = await this.embeddingService.embedTexts(
+        storedChunks.map((chunk) => chunk.content),
+      );
+
+      await this.documentsRepository.setChunkEmbeddings(
+        storedChunks.map((chunk, index) => ({
+          id: chunk.id,
+          embedding: embeddings[index],
+        })),
+      );
+
+      return this.documentsRepository.updateExtraction(
         documentId,
         content,
         DocumentStatus.READY,
       );
-      await this.documentsRepository.replaceChunks(
-        documentId,
-        chunkText(content),
-      );
-      return document;
     } catch {
       await this.documentsRepository.replaceChunks(documentId, []);
       return this.documentsRepository.updateExtraction(
