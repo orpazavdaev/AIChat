@@ -1,4 +1,5 @@
 import { ApiError } from '@/lib/api/client';
+import { handleSessionExpired, isUnauthorizedStatus } from '@/lib/auth/session';
 import { tokenStorage } from '@/lib/auth/token-storage';
 import type { RagSseEvent } from '@/types/chat';
 
@@ -42,6 +43,11 @@ export async function streamRagAsk(
     const message = Array.isArray(payload?.message)
       ? payload.message.join(', ')
       : (payload?.message ?? 'Request failed');
+
+    if (isUnauthorizedStatus(response.status)) {
+      handleSessionExpired();
+    }
+
     throw new ApiError(response.status, message);
   }
 

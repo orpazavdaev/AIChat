@@ -1,3 +1,4 @@
+import { handleSessionExpired, isUnauthorizedStatus } from '@/lib/auth/session';
 import { tokenStorage } from '@/lib/auth/token-storage';
 
 const API_BASE_URL =
@@ -49,6 +50,11 @@ export async function apiClient<T>(
     const message = Array.isArray(payload?.message)
       ? payload.message.join(', ')
       : (payload?.message ?? 'Request failed');
+
+    if (auth && isUnauthorizedStatus(response.status)) {
+      handleSessionExpired();
+    }
+
     throw new ApiError(response.status, message);
   }
 

@@ -1,5 +1,6 @@
-import { tokenStorage } from '@/lib/auth/token-storage';
 import { ApiError } from '@/lib/api/client';
+import { handleSessionExpired, isUnauthorizedStatus } from '@/lib/auth/session';
+import { tokenStorage } from '@/lib/auth/token-storage';
 import type { Document } from '@/types/document';
 
 const API_BASE_URL =
@@ -28,6 +29,9 @@ export const documentsApi = {
     }).then(async (response) => {
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
+        if (isUnauthorizedStatus(response.status)) {
+          handleSessionExpired();
+        }
         throw new ApiError(response.status, parseErrorMessage(payload));
       }
       return response.json() as Promise<Document[]>;
@@ -87,6 +91,10 @@ export const documentsApi = {
           payload = JSON.parse(xhr.responseText);
         } catch {
           payload = null;
+        }
+
+        if (isUnauthorizedStatus(xhr.status)) {
+          handleSessionExpired();
         }
 
         reject(new ApiError(xhr.status, parseErrorMessage(payload)));

@@ -10,13 +10,14 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, useLoginRedirect } from '@/hooks/use-auth';
 import { Loader2, Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 
 export function LoginForm() {
   const { login } = useAuth();
+  const { expired } = useLoginRedirect();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -37,6 +38,14 @@ export function LoginForm() {
           className="flex flex-col gap-5"
           suppressHydrationWarning
         >
+          {expired && (
+            <p
+              role="alert"
+              className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100"
+            >
+              Your session expired. Please sign in again.
+            </p>
+          )}
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">

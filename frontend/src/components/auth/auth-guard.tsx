@@ -1,22 +1,25 @@
 'use client';
 
+import { useAuth } from '@/hooks/use-auth';
 import { tokenStorage } from '@/lib/auth/token-storage';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [isAllowed, setIsAllowed] = useState(false);
+  const { isLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (!tokenStorage.hasToken()) {
-      router.replace('/login');
+    if (isLoading) {
       return;
     }
-    setIsAllowed(true);
-  }, [router]);
 
-  if (!isAllowed) {
+    if (!tokenStorage.hasToken() || !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading || !isAuthenticated) {
     return null;
   }
 
