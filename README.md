@@ -308,6 +308,43 @@ sequenceDiagram
 
 ---
 
+### 16. Local filesystem PDF storage
+
+**Decision:** Uploaded PDFs are persisted on the API server under `UPLOAD_DIR` (default `uploads/{userId}/{uuid}.pdf`). Metadata and extracted text live in PostgreSQL; the binary file remains on disk for the lifetime of that server instance.
+
+**Why:**
+
+| Benefit | Explanation |
+|---------|-------------|
+| Simpler architecture | No object-storage SDK, bucket policies, presigned URLs, or cross-service IAM to configure for a portfolio deployment. |
+| Lower operational complexity | One fewer external dependency in the critical path; uploads flow directly from Multer → disk → `pdf-parse`. |
+| Easier local development | `npm run start:dev` works with a folder on disk; no cloud account or emulated S3 required. |
+| Faster iteration | Upload, extraction, and embedding can be debugged end-to-end on a single machine without network hops to a blob store. |
+
+**Drawbacks:**
+
+| Limitation | Explanation |
+|------------|-------------|
+| Ephemeral disks on PaaS | Platforms such as Render (free tier) use **ephemeral filesystems**. Redeploys, restarts, or new instances can **delete** files under `uploads/` while database rows still reference missing paths. |
+| Limited scalability | Disk I/O and capacity are bound to one host. Large libraries or concurrent uploads do not distribute across nodes. |
+| Multi-instance deployments | Running multiple API replicas requires **shared storage** or object storage; otherwise each instance sees a different subset of files. |
+
+**Tradeoff (explicit):** **Simplicity and faster development** versus **reliability and scalability**. Local storage is appropriate for demos, local development, and early portfolio hosting. A production deployment should treat cloud object storage (e.g. **AWS S3**, Google Cloud Storage, or equivalent) as the source of truth for PDF binaries, with the database storing object keys and metadata only.
+
+```mermaid
+flowchart LR
+  subgraph Today["Current (portfolio)"]
+    U[Upload] --> FS[Server filesystem<br/>uploads/]
+    FS --> P[pdf-parse]
+  end
+  subgraph Production["Target production"]
+    U2[Upload] --> S3[Object storage<br/>S3 / GCS]
+    S3 --> P2[Worker / API<br/>pdf-parse]
+  end
+```
+
+---
+
 ## Document Ingestion Pipeline
 
 End-to-end flow from PDF upload to searchable vectors:
@@ -597,15 +634,180 @@ App runs at **http://localhost:3001**
 
 ## Future Improvements
 
-| Area | Idea |
-|------|------|
-| Auth | Refresh tokens, HttpOnly cookies |
-| Retrieval | Hybrid search (BM25 + vector), re-ranking, similarity threshold |
-| Chunking | Semantic / recursive splitting |
-| Scale | Background job queue for embedding, S3 for PDFs |
-| Multi-tenant | Organizations, shared document libraries |
-| Observability | Structured logging, tracing, embedding/chat cost metrics |
-| Testing | E2E RAG evals with golden Q&A sets |
+The following items are intentional next steps beyond the current portfolio scope. Each subsection describes the capability, why it matters, expected benefits, and tradeoffs where relevant.
+
+---
+
+### Deep citation navigation
+
+**What it is:** Today, citations link to the **Documents** page and highlight the source file in the list. A future enhancement would open the **PDF viewer directly at the cited page** (e.g. `report.pdf`, page 7) when the user clicks `[source-N]` or a row in the Sources panel.
+
+**Why it matters:** Reviewers and end users can verify answers in one click instead of manually finding the file and scrolling to the page.
+
+**Benefits:**
+
+- Faster source verification and lower cognitive load during Q&A.
+- Stronger perceived trust: the UI connects the AI’s claim to a concrete location in the original document.
+- Better alignment with how legal, compliance, and research workflows expect citations to behave.
+
+**Tradeoffs:** Requires a PDF rendering layer in the frontend (or signed URLs to a viewer service), page-accurate offsets from ingestion, and routing that survives document re-uploads. Storage must remain stable (see [§16 Local filesystem PDF storage](#16-local-filesystem-pdf-storage)) or citations must resolve via immutable object versions.
+
+---
+
+### In-PDF source highlighting
+
+**What it is:** Beyond jumping to a page, the viewer would **highlight the exact sentence or text span** from the retrieved chunk—the same text sent to the model as context.
+
+**Why it matters:** Page-level navigation alone does not show *which* sentence supported the answer, especially on dense pages.
+
+**Benefits:**
+
+- **Explainability:** Users see precisely what the model was allowed to use.
+- **Transparency:** Reduces ambiguity when multiple facts appear on one page.
+- Supports auditing and debugging retrieval quality (wrong highlight → wrong chunk).
+
+**Tradeoffs:** Needs reliable character or bounding-box mapping from `pdf-parse` output to viewer coordinates; layout-heavy PDFs (scanned images, tables) are harder than plain text. Highlight state should be tied to `chunkId` at answer time to match persisted citations.
+
+---
+
+### Refresh token authentication
+
+**What it is:** The API currently issues a **single short-lived JWT access token** (default 15 minutes) stored in `localStorage`. A production auth upgrade would add **long-lived refresh tokens** used only to obtain new access tokens, enabling **silent session renewal** without re-entering credentials.
+
+**Why it matters:** Short access tokens limit exposure if leaked; refresh tokens allow longer sessions without keeping a long-lived bearer token in JavaScript-accessible storage.
+
+**Benefits:**
+
+| Area | Benefit |
+|------|---------|
+| UX | Users stay signed in across tab refreshes and work sessions; fewer disruptive logouts. |
+| Security | Access tokens remain short-lived; refresh tokens can be rotated, revoked, and bound to device/session. |
+| Production practice | HttpOnly, Secure, SameSite cookies for refresh tokens reduce XSS impact compared to `localStorage` access tokens. |
+
+**Tradeoffs:** Requires refresh endpoint, token rotation/revocation storage, and CSRF considerations for cookie-based flows. More moving parts than the current minimal JWT implementation (see [§10 JWT in localStorage](#10-jwt-in-localstorage-no-refresh-token)).
+
+---
+
+### Manual retry for failed chat responses
+
+**What it is:** When an SSE stream fails (network error, Gemini outage, timeout), the client shows an **error state** and offers **“Retry last question”**—not an automatic background retry of the full RAG pipeline.
+
+**Why it matters:** Chat is stateful and streaming; blind retries are easy to get wrong.
+
+**Why not automatic retry for streaming chat:**
+
+| Risk | Description |
+|------|-------------|
+| Duplicated messages | `prepare()` may persist the user message again if the whole handler re-runs. |
+| Duplicated writes | Partial assistant content or citation events may already have been processed. |
+| Partial SSE delivery | The client may have rendered tokens before failure; a silent retry produces duplicate or conflicting UI. |
+
+**Preferred approach:**
+
+1. Surface a clear error with the last question still visible.
+2. Let the user explicitly retry (re-invoke stream for the same question, or a dedicated “resend” that reuses the existing user message when safe).
+
+**Benefits:** Predictable behavior, no hidden duplicate rows in `Message`, easier to reason about in support and tests.
+
+**Tradeoffs:** Slightly more user friction than silent retry; requires careful API design if “retry” should skip re-inserting the user message.
+
+---
+
+### Embedding retry with exponential backoff
+
+**What it is:** Add bounded retries inside `AiService` (or a thin wrapper) for **idempotent** embedding calls: `embedTexts` (document ingestion) and `embedQuery` (retrieval). Do **not** apply the same pattern to streaming chat generation without a dedicated design.
+
+**Why it matters:** Transient Gemini or network failures during upload should not immediately mark a document `FAILED` or block a question when a short retry would succeed.
+
+**Retry only transient failures:**
+
+| Retry | Examples |
+|-------|----------|
+| Yes | HTTP 429 (rate limit), 502/503/504 (gateway/upstream), timeouts, connection resets |
+| No | 400 (malformed request), 401/403 (API key / auth), validation errors, “no text in PDF” business failures |
+
+**Exponential backoff:** Wait progressively longer between attempts (e.g. 1s → 2s → 4s, with jitter) so retries do not amplify load during outages.
+
+**Benefits:**
+
+- Higher ingestion success rate on flaky networks or quota spikes.
+- Clear separation: embeddings are safe to repeat; identical vectors for the same text.
+
+**Tradeoffs:** Longer tail latency on failure; must cap max attempts and log retries for observability. Chat streaming remains manual-retry (previous subsection).
+
+---
+
+### Hybrid retrieval and re-ranking
+
+**What it is:** Extend pure vector search (cosine on pgvector) with **keyword retrieval (BM25)**, optional **cross-encoder re-ranking** of top candidates, and a **similarity threshold** below which the system refuses to answer.
+
+**Why it matters:** Vector search alone can miss exact tokens (SKUs, clause numbers) or retrieve semantically related but wrong chunks.
+
+**Benefits:**
+
+- Better recall when users quote exact phrases from PDFs.
+- Re-ranking improves precision before chunks enter the prompt.
+- Thresholds reduce hallucination driven by weak matches.
+
+**Tradeoffs:** Extra indexes (e.g. PostgreSQL full-text or OpenSearch), latency, and tuning complexity. Re-ranking adds cost per query if using a separate model.
+
+---
+
+### Background jobs and cloud object storage
+
+**What it is:** Move long-running ingestion (extract → chunk → embed) to a **job queue** (e.g. BullMQ, SQS + worker) and store PDF binaries in **object storage** instead of local disk.
+
+**Why it matters:** Complements [§16](#16-local-filesystem-pdf-storage): uploads return quickly, workers retry embeddings, and files survive deploys.
+
+**Benefits:**
+
+- API instances become stateless; horizontal scaling is feasible.
+- Failed jobs can retry without blocking the HTTP request.
+- Durable PDF storage for citation navigation and compliance.
+
+**Tradeoffs:** Infrastructure cost, monitoring for queue depth and dead-letter queues, and idempotent job handlers.
+
+---
+
+### Multi-tenant organizations
+
+**What it is:** Model **organizations** (or workspaces) with shared document libraries, roles (admin, member, viewer), and scoped vector search.
+
+**Why it matters:** Current isolation is **per user** only ([§11](#11-per-user-data-isolation-at-the-repository-layer)); real teams need shared corpora without duplicating uploads.
+
+**Benefits:** Team SaaS positioning, centralized billing, shared knowledge bases.
+
+**Tradeoffs:** Schema migration (`Organization`, memberships), RBAC on every repository method, and data-export/deletion policies per tenant.
+
+---
+
+### Observability and cost controls
+
+**What it is:** Structured logs (JSON), distributed tracing (OpenTelemetry), and metrics for **embedding token volume**, **chat token usage**, and error rates per endpoint.
+
+**Why it matters:** RAG systems fail opaquely without visibility into retrieval vs generation vs external API limits.
+
+**Benefits:**
+
+- Faster incident response and capacity planning.
+- Per-user or per-org cost attribution for Gemini billing.
+
+**Tradeoffs:** Collector overhead, PII in logs (must redact prompts or hash user IDs), and storage cost for traces.
+
+---
+
+### E2E RAG evaluation (golden datasets)
+
+**What it is:** Automated tests with fixed PDFs, questions, and expected behaviors (answer contains X, cites `source-2`, or refuses when context is insufficient).
+
+**Why it matters:** Changes to chunk size, top-K, or prompts can regress quality without compile-time failures.
+
+**Benefits:**
+
+- CI signal on retrieval and grounding before release.
+- Documented quality baseline for portfolio reviewers.
+
+**Tradeoffs:** Golden sets require maintenance; LLM outputs may need fuzzy matching or human-reviewed baselines, not exact string equality.
 
 ---
 
