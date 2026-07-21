@@ -2,14 +2,17 @@
 
 import { Logo } from '@/components/brand/logo';
 import { AppSidebar } from '@/components/layout/app-sidebar';
+import { BackendWakeBanner } from '@/components/layout/backend-wake-banner';
 import { SidebarContent } from '@/components/layout/sidebar-content';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { useBackendHealth } from '@/hooks/use-backend-health';
 import { Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { isWaking, refetch } = useBackendHealth();
 
   useEffect(() => {
     if (!mobileNavOpen) {
@@ -67,6 +70,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo />
           <ThemeToggle />
         </header>
+        {isWaking && (
+          <BackendWakeBanner onRetry={() => void refetch()} />
+        )}
         <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
       </div>
     </div>

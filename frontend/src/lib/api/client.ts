@@ -1,8 +1,6 @@
+import { getApiBaseUrl } from '@/lib/api/base-url';
 import { handleSessionExpired, isUnauthorizedStatus } from '@/lib/auth/session';
 import { tokenStorage } from '@/lib/auth/token-storage';
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 export class ApiError extends Error {
   constructor(
@@ -37,11 +35,19 @@ export async function apiClient<T>(
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...rest,
-    headers: requestHeaders,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getApiBaseUrl()}${path}`, {
+      ...rest,
+      headers: requestHeaders,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new ApiError(
+      0,
+      'Could not reach the server. It may be waking up after idle time — try again in a moment.',
+    );
+  }
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as {

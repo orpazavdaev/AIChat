@@ -1,10 +1,8 @@
+import { getApiBaseUrl } from '@/lib/api/base-url';
 import { ApiError } from '@/lib/api/client';
 import { handleSessionExpired, isUnauthorizedStatus } from '@/lib/auth/session';
 import { tokenStorage } from '@/lib/auth/token-storage';
 import type { RagSseEvent } from '@/types/chat';
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 export type RagStreamHandlers = {
   onEvent: (event: RagSseEvent) => void;
@@ -26,15 +24,26 @@ export async function streamRagAsk(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/chat/conversations/${conversationId}/ask/stream`,
-    {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ question }),
-      signal: handlers.signal,
-    },
-  );
+  let response: Response;
+  try {
+    response = await fetch(
+      `${getApiBaseUrl()}/chat/conversations/${conversationId}/ask/stream`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ question }),
+        signal: handlers.signal,
+      },
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw error;
+    }
+    throw new ApiError(
+      0,
+      'Could not reach the server. It may be waking up after idle time — try again in a moment.',
+    );
+  }
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as {

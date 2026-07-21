@@ -1,5 +1,6 @@
 'use client';
 
+import { AppBootScreen } from '@/components/layout/app-boot-screen';
 import { useAuth } from '@/hooks/use-auth';
 import { tokenStorage } from '@/lib/auth/token-storage';
 import { useRouter } from 'next/navigation';
@@ -7,20 +8,24 @@ import { useEffect } from 'react';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isReady, hasToken, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (isLoading) {
+    if (!isReady) {
       return;
     }
 
     if (!tokenStorage.hasToken() || !isAuthenticated) {
       router.replace('/login');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isReady, hasToken, isAuthenticated, router]);
 
-  if (isLoading || !isAuthenticated) {
-    return null;
+  if (!isReady) {
+    return <AppBootScreen />;
+  }
+
+  if (!hasToken || !isAuthenticated) {
+    return <AppBootScreen />;
   }
 
   return children;

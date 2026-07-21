@@ -18,16 +18,19 @@ export function useAuth() {
     setIsReady(true);
   }, []);
 
+  const hasToken = isReady && tokenStorage.hasToken();
+
   const meQuery = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: authApi.me,
-    enabled: isReady && tokenStorage.hasToken(),
+    enabled: hasToken,
     retry: (failureCount, error) => {
       if (error instanceof ApiError && error.status === 401) {
         return false;
       }
-      return failureCount < 1;
+      return failureCount < 2;
     },
+    retryDelay: (attempt) => Math.min(2000 * 2 ** attempt, 8000),
   });
 
   useEffect(() => {
@@ -62,16 +65,20 @@ export function useAuth() {
     router.push('/login');
   };
 
-  const hasToken = isReady && tokenStorage.hasToken();
-  const isAuthenticated = hasToken && meQuery.isSuccess;
+  const isUnauthorized =
+    meQuery.error instanceof ApiError && meQuery.error.status === 401;
 
   return {
     user: meQuery.data ?? tokenStorage.getUser(),
-    isLoading: !isReady || (hasToken && meQuery.isLoading),
-    isAuthenticated,
+    isReady,
+    hasToken,
+    isVerifying: hasToken && meQuery.isPending,
+    isAuthenticated: hasToken && !isUnauthorized,
+    isLoading: !isReady,
     login: loginMutation,
     register: registerMutation,
     logout,
+    refetchMe: meQuery.refetch,
   };
 }
 

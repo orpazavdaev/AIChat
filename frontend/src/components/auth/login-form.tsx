@@ -11,13 +11,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useLoginRedirect } from '@/hooks/use-auth';
-import { Loader2, Lock, Mail } from 'lucide-react';
+import { useBackendHealth } from '@/hooks/use-backend-health';
+import { Loader2, Lock, Mail, Server } from 'lucide-react';
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 
 export function LoginForm() {
   const { login } = useAuth();
   const { expired } = useLoginRedirect();
+  const { isWaking } = useBackendHealth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -38,6 +40,18 @@ export function LoginForm() {
           className="flex flex-col gap-5"
           suppressHydrationWarning
         >
+          {isWaking && (
+            <p
+              role="status"
+              className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100"
+            >
+              <Server className="mt-0.5 size-4 shrink-0" />
+              <span>
+                The API is waking up after idle time. You can fill the form now —
+                sign-in may take up to a minute on the first try.
+              </span>
+            </p>
+          )}
           {expired && (
             <p
               role="alert"
@@ -88,7 +102,7 @@ export function LoginForm() {
             {login.isPending ? (
               <>
                 <Loader2 className="animate-spin" />
-                Signing in...
+                {isWaking ? 'Waiting for server…' : 'Signing in...'}
               </>
             ) : (
               'Sign in'

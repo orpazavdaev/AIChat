@@ -1,10 +1,8 @@
+import { getApiBaseUrl } from '@/lib/api/base-url';
 import { ApiError } from '@/lib/api/client';
 import { handleSessionExpired, isUnauthorizedStatus } from '@/lib/auth/session';
 import { tokenStorage } from '@/lib/auth/token-storage';
 import type { Document } from '@/types/document';
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 function parseErrorMessage(payload: unknown): string {
   if (!payload || typeof payload !== 'object') {
@@ -22,20 +20,30 @@ function parseErrorMessage(payload: unknown): string {
 
 export const documentsApi = {
   list() {
-    return fetch(`${API_BASE_URL}/documents`, {
+    return fetch(`${getApiBaseUrl()}/documents`, {
       headers: {
         Authorization: `Bearer ${tokenStorage.getAccessToken() ?? ''}`,
       },
-    }).then(async (response) => {
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        if (isUnauthorizedStatus(response.status)) {
-          handleSessionExpired();
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          if (isUnauthorizedStatus(response.status)) {
+            handleSessionExpired();
+          }
+          throw new ApiError(response.status, parseErrorMessage(payload));
         }
-        throw new ApiError(response.status, parseErrorMessage(payload));
-      }
-      return response.json() as Promise<Document[]>;
-    });
+        return response.json() as Promise<Document[]>;
+      })
+      .catch((error) => {
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        throw new ApiError(
+          0,
+          'Could not reach the server. It may be waking up after idle time — try again in a moment.',
+        );
+      });
   },
 
   upload(file: File, onProgress?: (progress: number) => void) {
@@ -44,7 +52,7 @@ export const documentsApi = {
 
     return new Promise<Document>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${API_BASE_URL}/documents/upload`);
+      xhr.open('POST', `${getApiBaseUrl()}/documents/upload`);
 
       const token = tokenStorage.getAccessToken();
       if (token) {
@@ -102,7 +110,12 @@ export const documentsApi = {
 
       xhr.onerror = () => {
         stopMockProgress();
-        reject(new ApiError(0, 'Upload failed'));
+        reject(
+          new ApiError(
+            0,
+            'Could not reach the server. It may be waking up after idle time — try again in a moment.',
+          ),
+        );
       };
 
       xhr.onabort = () => {
